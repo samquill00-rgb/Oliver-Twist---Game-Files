@@ -1,0 +1,4 @@
+# Session handoffs stay local, same convention as Dream Street Shuffle
+HANDOFF*.md
+
+.DS_Store

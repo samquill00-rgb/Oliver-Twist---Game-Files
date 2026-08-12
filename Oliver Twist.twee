@@ -1,0 +1,408 @@
+:: StoryTitle
+Oliver Twist
+
+:: StoryInit [startup]
+<!-- ═══════════════════════════════════════════════════════════════════
+     OLIVER TWIST — SKELETON
+     Built 2026-08-12. Every passage below is a STUB: structural notes
+     and working links only. No prose. The shape is here to be argued
+     with before anything gets written.
+
+     Structure:  PROLOGUE (linear, sets state)
+                 → HUB A: Fagin's den, nights 1–3
+                 → INTERLUDE: Pentonville (breaks the hub)
+                 → HUB B: Fagin's den, nights 4–7
+                 → THE DOOR: Chertsey (one-way)
+                 → EPILOGUE (branch, then converge on 4 endings)
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<!-- THE TWO AXES. They pull against each other: nothing raises both.
+     Innocence is what Dickens insists cannot be spent. The game lets
+     you spend it. Standing is Fagin's regard, and it only ever buys
+     access — never safety. -->
+(set: $innocence to 70)\
+(set: $standing to 0)\
+
+<!-- THE CLOCK. Not a dawn budget like Dean Street. The night counter
+     is a leash: fixed nights are Fagin's, open nights are yours.
+     Tune $nightsTotal here. -->
+(set: $night to 0)\
+(set: $nightsTotal to 7)\
+
+<!-- PROLOGUE FLAGS — set before London, read for the rest of the game. -->
+(set: $askedWhy to "")\
+(set: $foughtNoah to false)\
+(set: $rememberedMother to false)\
+
+<!-- HUB FLAGS -->
+(set: $learnedTheTrick to false)\
+(set: $tookFromBrownlow to false)\
+(set: $nancyOpened to false)\
+(set: $knowsLocket to false)\
+(set: $followedFagin to false)\
+(set: $sikesTrusts to false)\
+(set: $visited to (dm: "Market", false, "Cripples", false, "Nancy", false, "Attic", false, "Sikes", false, "Follow", false))\
+
+<!-- EPILOGUE FLAGS -->
+(set: $warnedNancy to false)\
+(set: $nancySaved to false)\
+(set: $wentWithSikes to false)\
+(set: $gaveUpFagin to false)
+
+:: UserStylesheet [stylesheet]
+/* ═══ SKELETON STYLES ═══
+   Deliberately plain. The whole visual language of the game is still
+   open; nothing here should be treated as a decision. */
+
+tw-story {
+	font-family: Georgia, 'Times New Roman', serif;
+	background: #14120f;
+	color: #ddd4c4;
+	max-width: 34em;
+	line-height: 1.6;
+}
+
+tw-link, .enchantment-link {
+	color: #c8a86a;
+	text-decoration: none;
+	border-bottom: 1px solid rgba(200, 168, 106, 0.35);
+}
+tw-link:hover, .enchantment-link:hover {
+	color: #e8c060;
+	border-bottom-color: #e8c060;
+}
+
+/* Every stub is wrapped in this. It is meant to be ugly and obvious,
+   so that a passage that still needs writing cannot be mistaken for a
+   passage that is finished. Delete the wrapper as each one is written. */
+.stub {
+	display: block;
+	border-left: 3px solid #b04a7a;
+	background: rgba(176, 74, 122, 0.09);
+	padding: 0.7em 1em;
+	margin: 0 0 1.2em 0;
+	font-family: 'Helvetica Neue', Arial, sans-serif;
+	font-size: 0.85em;
+	line-height: 1.5;
+	color: #e6a8c8;
+}
+.stub b { color: #ff9ecb; }
+.stub .beat { display: block; margin-bottom: 0.45em; }
+.stub .note { display: block; opacity: 0.75; font-style: italic; margin-top: 0.5em; }
+
+/* Status bar */
+.statusbar {
+	display: flex;
+	gap: 1.5em;
+	border-bottom: 1px solid rgba(200, 168, 106, 0.2);
+	padding-bottom: 0.5em;
+	margin-bottom: 1.5em;
+	font-family: 'Helvetica Neue', Arial, sans-serif;
+	font-size: 0.72em;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: #8a7f6d;
+}
+.statusbar b { color: #c8a86a; font-weight: normal; }
+
+:: Status Bar [header]
+<!-- Clamp both axes to 0–100. The header runs before every passage body, so
+     this catches whatever the previous passage did. Without it a clean run
+     ends above 100 and the gates stop meaning anything. -->
+(set: $innocence to (max: 0, (min: 100, $innocence)))\
+(set: $standing to (max: 0, (min: 100, $standing)))\
+(if: $night > 0 or (passage:)'s name is not "Title")[<div class="statusbar"><span>Innocence <b>(print: $innocence)</b></span><span>Standing <b>(print: $standing)</b></span>(if: $night > 0 and $night <= $nightsTotal)[<span>Night <b>(print: $night)</b> of <b>(print: $nightsTotal)</b></span>]</div>]
+
+:: Title [prologue] {"position":"100,50","size":"100,100"}
+<span class="stub"><span class="beat"><b>TITLE PASSAGE.</b> Placeholder — the game is not called <i>Oliver Twist</i> yet.</span><span class="note">Structural note: DSS opens on a title card with a single link in. Same here. Whatever the eventual title screen does visually, it needs exactly one exit.</span></span>
+
+[[Begin->The Workhouse]]
+
+:: The Workhouse [prologue] {"position":"100,175","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Born in the workhouse. Named by Bumble off an alphabetical list. Mother dies without being named herself.</span><span class="note">Structural: the mother's namelessness is the seed of the locket plot. Plant it here so the epilogue can pay it. No choice in this passage — it is the one stretch where the player genuinely has no agency, and that is the point.</span></span>
+
+[[Nine years pass->The Board]]
+
+:: The Board [prologue] {"position":"100,275","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> The board of gentlemen. The famous system: three meals of thin gruel a day, with an onion twice a week.</span><span class="note">Structural: establishes hunger as the game's first currency, so that the choice two passages on has weight.</span></span>
+
+[[The long table->The Long Table]]
+
+:: The Long Table [prologue] {"position":"100,375","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> The boys draw lots for who will ask. Oliver draws it.</span><span class="note">Structural: keep the lottery. It means the asking is not chosen — only the <i>manner</i> of it is, in the next passage. That is a cleaner piece of design than letting the player opt out.</span></span>
+
+[[Walk to the master->More]]
+
+:: More [prologue] {"position":"100,475","size":"100,100"}
+<span class="stub"><span class="beat"><b>THE FIRST CHOICE.</b> "Please, sir, I want some more." The line is fixed. What is behind it is not.</span><span class="note">This is character creation wearing a costume. Each option sets `$askedWhy` and moves the opening axes. Nothing is displayed to the player.</span></span>
+
+(link-goto: "Because you are hungry.", "More: Hunger")
+(link-goto: "Because they expect you not to.", "More: Defiance")
+(link-goto: "Because the smallest boy at the table cannot.", "More: For Another")
+
+:: More: Hunger [prologue] {"position":"250,475","size":"100,100"}
+(set: $askedWhy to "hunger")(set: $innocence to $innocence - 5)(set: $standing to $standing + 5)<span class="stub"><span class="beat"><b>BRANCH — HUNGER.</b> Innocence −5, Standing +5.</span><span class="note">The pragmatic Oliver. Starts nearer Fagin, and the den will read as relief rather than horror. Cheapest route to the Made Thief ending.</span></span>
+
+[[Continue->The Cellar]]
+
+:: More: Defiance [prologue] {"position":"250,575","size":"100,100"}
+(set: $askedWhy to "defiance")(set: $standing to $standing + 10)<span class="stub"><span class="beat"><b>BRANCH — DEFIANCE.</b> Standing +10, Innocence unchanged.</span><span class="note">The dangerous Oliver. Fagin will like him fastest; Nancy will trust him least. Opens Sikes's lodging earliest.</span></span>
+
+[[Continue->The Cellar]]
+
+:: More: For Another [prologue] {"position":"250,675","size":"100,100"}
+(set: $askedWhy to "another")(set: $innocence to $innocence + 10)<span class="stub"><span class="beat"><b>BRANCH — FOR ANOTHER.</b> Innocence +10.</span><span class="note">Dickens's Oliver. Hardest run: the den has nothing to offer him, so the open nights bite. Only route where the Locket ending is reachable without effort.</span></span>
+
+[[Continue->The Cellar]]
+
+:: The Cellar [prologue] {"position":"100,600","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Solitary confinement. The bill posted outside: five pounds to anyone who will take the boy off the parish.</span><span class="note">Structural: five pounds is the price of Oliver, stated in public. Monks pays a great deal more for him later. That is the epilogue's whole argument, set up here in one line.</span></span>
+
+[[Continue->The Sweep]]
+
+:: The Sweep [prologue] {"position":"100,700","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Gamfield the chimney sweep wants him. The magistrate, half-blind and barely paying attention, happens to look up and see Oliver's face, and refuses to sign.</span><span class="note">Structural: pure luck saves him. Worth keeping precisely because the player has no input — it establishes that the world's mercy is arbitrary, which makes the endings' conditionality land harder.</span></span>
+
+[[Continue->Sowerberry's]]
+
+:: Sowerberry's [prologue] {"position":"100,800","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Apprenticed to the undertaker. Mrs Sowerberry, Charlotte, Noah Claypole. Fed on the dog's cold scraps.</span><span class="note">Structural: this is the first place Oliver has a <i>position</i>, however low. Needed so that the den can later feel like a promotion.</span></span>
+
+[[Continue->The Coffin Room]]
+
+:: The Coffin Room [prologue] {"position":"100,900","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> He sleeps among the coffins under the counter.</span><span class="note">Structural: candidate for the prologue's one atmospheric set piece. Flagging it as a <i>place</i> for a scene, not proposing the scene.</span></span>
+
+[[Continue->The Pauper's Funeral]]
+
+:: The Pauper's Funeral [prologue] {"position":"100,1000","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> First job as a mute. A pauper's burial: the husband, the starved woman, the grave already full.</span><span class="note">Structural: Oliver watches someone else's mother go into the ground. Rhymes with the opening. If the player is on the "for another" route this should read differently — worth a small `(if: $askedWhy is "another")` variant.</span></span>
+
+[[Continue->Noah Claypole]]
+
+:: Noah Claypole [prologue] {"position":"100,1100","size":"100,100"}
+<span class="stub"><span class="beat"><b>THE SECOND CHOICE.</b> Noah says something about Oliver's mother.</span><span class="note">The prologue's other state-setter. In the novel Oliver flies at him, and it is the only violent thing he ever does. Making it optional is the single biggest departure from the source, and the one that earns the whole design.</span></span>
+
+(link-goto: "Fly at him.", "Noah: Fight")
+(link-goto: "Say nothing.", "Noah: Swallow")
+
+:: Noah: Fight [prologue] {"position":"250,1100","size":"100,100"}
+(set: $foughtNoah to true)(set: $rememberedMother to true)(set: $standing to $standing + 10)(set: $innocence to $innocence - 5)<span class="stub"><span class="beat"><b>BRANCH — FIGHT.</b> Standing +10, Innocence −5. Sets `$foughtNoah`, `$rememberedMother`.</span><span class="note">Canon. He is beaten, locked up, and runs that night. `$rememberedMother` is read again at the locket.</span></span>
+
+[[Continue->The Road]]
+
+:: Noah: Swallow [prologue] {"position":"250,1200","size":"100,100"}
+(set: $foughtNoah to false)(set: $innocence to $innocence + 5)<span class="stub"><span class="beat"><b>BRANCH — SWALLOW.</b> Innocence +5. `$rememberedMother` stays false.</span><span class="note">He runs anyway, for a different reason. Costs him the locket recognition later unless he earns it back at Pentonville — that is the trade, and it should be invisible at the time.</span></span>
+
+[[Continue->The Road]]
+
+:: The Road [prologue] {"position":"100,1300","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Seven days on foot to London. Seventy miles. Begging, sleeping in fields, a turnpike keeper, an old lady who feeds him.</span><span class="note">Structural: candidate for a compressed montage rather than passages — one screen, seven lines, no choices. Keeps the prologue from sagging just before the hook.</span></span>
+
+[[Continue->Barnet]]
+
+:: Barnet [prologue] {"position":"100,1400","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> Jack Dawkins, the Artful Dodger, on a doorstep at Barnet. Snub-nosed, flat-browed, wearing a man's coat to his heels. He buys Oliver food and offers a lodging with "a 'spectable old genelman".</span><span class="note">Structural: the hinge of the whole game. Everything before is fixed; everything after is chosen. If any passage in the prologue gets full attention, it is this one.</span></span>
+
+[[Follow him into London->Field Lane]]
+
+:: Field Lane [prologue] {"position":"100,1500","size":"100,100"}
+(set: $night to 1)<span class="stub"><span class="beat"><b>BEAT — ARRIVAL.</b> Saffron Hill after dark. The narrow filthy descent, the drunk, the smell. Up the stairs to the den.</span><span class="note">Structural: the threshold. Night counter starts here. From this passage on the game is a loop until Chertsey.</span></span>
+
+[[Up the stairs->Fagin's Den]]
+
+:: Fagin's Den [hub] {"position":"600,700","size":"100,100"}
+<span class="stub"><span class="beat"><b>THE HUB.</b> Fagin at the fire with the toasting-fork. Handkerchiefs on the line. Dodger and Charley Bates. This passage rewrites as state moves — it is the mirror the player checks themselves in.</span><span class="note">Structural: at least three variants of the den description, gated on `$innocence` bands (high / middling / low). Same room, differently seen. That is the cheapest possible way to dramatise corruption, and it costs no extra passages.</span></span>
+
+(if: $night is 1)[<span class="stub"><b>NIGHT 1 — FIXED.</b> Fagin's is the only door.</span>
+[[The game with the handkerchiefs->The Handkerchief Game]] ]
+
+(else-if: $night is 3)[<span class="stub"><b>NIGHT 3 — FIXED.</b> Fagin sends him out with Dodger and Charley for the first real time.</span>
+[[Out with Dodger and Charley->Clerkenwell]] ]
+
+(else-if: $night > $nightsTotal)[<span class="stub"><b>THE DOOR.</b> Night counter exhausted. Funnels to Chertsey regardless of state.</span>
+[[Sikes is waiting downstairs->The Chertsey Briefing]] ]
+
+(else:)[<span class="stub"><b>OPEN NIGHT.</b> Player picks. Options gate on state; unvisited ones are the draw.</span>
+[[Field Lane market->Field Lane Market]]
+[[The Three Cripples->The Three Cripples]]
+[[Nancy's room->Nancy's Room]]
+[[Stay in->The Attic Window]]
+(if: $standing >= 25)[ [[Sikes's lodging->Sikes's Lodging]] ]
+(if: $standing >= 40 and $learnedTheTrick)[ [[Follow Fagin->Following Fagin]] ]]
+
+:: Nightfall [hub] {"position":"600,860","size":"100,100"}
+(set: $night to it + 1)<span class="stub"><span class="beat"><b>THE RETURN.</b> Increments the night and sends the player back to the den. Every excursion ends here.</span><span class="note">Structural: exact function of Dean Street's return, but the counter means something different — it is Fagin's patience, not the dawn. Consider a one-line variant per night so the loop does not feel like a loop.</span></span>
+
+[[Continue->Fagin's Den]]
+
+:: The Handkerchief Game [fixed] {"position":"430,560","size":"100,100"}
+(set: $learnedTheTrick to true)(set: $standing to it + 10)(set: $innocence to it - 5)<span class="stub"><span class="beat"><b>FIXED — NIGHT 1.</b> Fagin walks up and down with the snuffbox and the handkerchief; the boys pick his pockets; Oliver is taught to do it and laughs.</span><span class="note">Structural: the corruption is disguised as a game, which is exactly how Dickens stages it. Standing +10, Innocence −5, and the player almost certainly will not notice they paid. Sets `$learnedTheTrick`, which gates the Follow Fagin excursion.</span><span class="note">Strong candidate for the game's first minigame — the DSS minigame harness is reusable here.</span></span>
+
+[[Continue->Nightfall]]
+
+:: Clerkenwell [fixed] {"position":"760,560","size":"100,100"}
+<span class="stub"><span class="beat"><b>FIXED — NIGHT 3. THE BOOKSTALL.</b> The old gentleman at the stall. Dodger takes the handkerchief. The gentleman turns. Everyone runs, and the boy left standing is Oliver.</span><span class="note">Structural: a choice inside a fixed night — the only one. Whether Oliver's hand goes in the pocket changes nothing about what happens next (he is caught either way) but changes what he knows about himself, which is the entire point.</span></span>
+
+(link-goto: "Put your hand in the pocket.", "Clerkenwell: Took")
+(link-goto: "Stand still.", "Clerkenwell: Stood")
+
+:: Clerkenwell: Took [fixed] {"position":"900,560","size":"100,100"}
+(set: $tookFromBrownlow to true)(set: $innocence to it - 15)(set: $standing to it + 15)<span class="stub"><span class="beat"><b>BRANCH — TOOK.</b> Innocence −15, Standing +15.</span><span class="note">He is caught anyway. But he is guilty, and the Pentonville interlude has to carry that — Brownlow's kindness lands on a boy who actually did it.</span></span>
+
+[[Stop thief->The Chase]]
+
+:: Clerkenwell: Stood [fixed] {"position":"900,660","size":"100,100"}
+(set: $tookFromBrownlow to false)(set: $innocence to it + 5)<span class="stub"><span class="beat"><b>BRANCH — STOOD.</b> Innocence +5. Caught regardless.</span><span class="note">Canon, and the more painful reading: the innocent boy is the one taken.</span></span>
+
+[[Stop thief->The Chase]]
+
+:: The Chase [fixed] {"position":"1040,610","size":"100,100"}
+<span class="stub"><span class="beat"><b>BEAT.</b> The cry goes up and the whole street joins it. Knocked down, taken to the magistrate. Mr Fang. The bookstall keeper arrives and clears him. Brownlow takes him home in a coach, fevered.</span><span class="note">Structural: no choices. The machinery of the law is another thing that happens <i>to</i> him. Exits the hub into the interlude.</span></span>
+
+[[Continue->Pentonville]]
+
+:: Pentonville [interlude] {"position":"1040,420","size":"100,100"}
+<span class="stub"><span class="beat"><b>INTERLUDE — 1 of 3.</b> Brownlow's house. Clean sheets, a fire, Mrs Bedwin. Weeks of it.</span><span class="note">Structural: this is why the hub breaks. Three linear passages of a life Oliver could have, dropped in the middle, so the recapture costs something. Restores Innocence and drains nothing else — the only free lunch in the game, and it gets taken away.</span></span>
+
+(set: $innocence to it + 10)
+[[Continue->The Portrait]]
+
+:: The Portrait [interlude] {"position":"1180,420","size":"100,100"}
+(set: $knowsLocket to true)<span class="stub"><span class="beat"><b>INTERLUDE — 2 of 3. THE PORTRAIT.</b> The picture of the young woman on the wall. Brownlow looks from it to Oliver's face and stops talking.</span><span class="note">Structural: the plot's actual engine, finally visible. Sets `$knowsLocket`, without which the Locket ending is unreachable. Note the interaction with `$rememberedMother` — a player who swallowed at Sowerberry's should get a thinner version of this scene.</span></span>
+
+(if: $rememberedMother)[<span class="stub">`$rememberedMother` is true — he has a face to compare it to. Full recognition available in the epilogue.</span>]
+(else:)[<span class="stub">`$rememberedMother` is false — the portrait means less. Epilogue recognition must be earned elsewhere (Nancy, or Monks).</span>]
+
+[[Continue->The Books]]
+
+:: The Books [interlude] {"position":"1180,540","size":"100,100"}
+<span class="stub"><span class="beat"><b>INTERLUDE — 3 of 3. THE TEST.</b> Brownlow sends him out with five pounds and a parcel of books, against Grimwig's certainty that he will never come back.</span><span class="note">Structural: the cruellest structural joke available. The player is walking to the recapture and does not know it. Do <i>not</i> offer a choice here; a choice would let them dodge it and the whole epilogue depends on the loss.</span></span>
+
+[[Clerkenwell, with the books->Recaptured]]
+
+:: Recaptured [interlude] {"position":"1040,700","size":"100,100"}
+(set: $night to 4)(set: $innocence to it - 5)<span class="stub"><span class="beat"><b>THE SNAP-BACK.</b> Nancy in the street, playing the frantic sister. Sikes and the dog. The crowd helps them take him. The books and the five pounds go to Fagin.</span><span class="note">Structural: hub resumes at night 4. Everything Pentonville gave gets read against everything the den does from here. Nancy is the one who took him, which is why her thread has to open <i>after</i> this and not before.</span></span>
+
+[[Back up the stairs->Fagin's Den]]
+
+:: Field Lane Market [excursion] {"position":"400,760","size":"100,100"}
+(set: $visited's Market to true)(set: $standing to it + 5)<span class="stub"><span class="beat"><b>OPEN EXCURSION.</b> The thieves' market: stolen handkerchiefs washed and resold, the fence, the whole economy Oliver is now inside.</span><span class="note">Structural: the low-stakes excursion. Its job is economic literacy — showing the player what the handkerchiefs are <i>for</i>. Repeatable without much movement in either axis.</span></span>
+
+[[Continue->Nightfall]]
+
+:: The Three Cripples [excursion] {"position":"400,880","size":"100,100"}
+(set: $visited's Cripples to true)(set: $standing to it + 5)(set: $innocence to it - 5)<span class="stub"><span class="beat"><b>OPEN EXCURSION.</b> The public house on Saffron Hill. Barney, the singing, the company. Monks is in the back room and should be glimpsed but never explained.</span><span class="note">Structural: the game's Coach and Horses. First place to seed Monks. On a repeat visit at `$standing` 40+, he should be nearer.</span></span>
+
+[[Continue->Nightfall]]
+
+:: Nancy's Room [excursion] {"position":"400,1000","size":"100,100"}
+(set: $visited's Nancy to true)<span class="stub"><span class="beat"><b>OPEN EXCURSION — ALWAYS VISITABLE.</b> Nancy alone. She was where Oliver is now, at the same age, and there is no version of this where she gets out.</span><span class="note">Structural: the door is never locked — what she gives you is. The passage splits on `$innocence` below. A corrupt player can sit in her room and get nothing; she reads the boy in front of her and decides. That is the mechanic making the argument instead of the prose.</span><span class="note">Aoife-flag risk: this is the passage that will decide whether Nancy is a character or a plot device. Worth writing first of all the excursions.</span></span>
+
+(if: $innocence >= 55)[(set: $nancyOpened to true)(set: $innocence to it + 5)(set: $standing to it - 5)<span class="stub"><b>VARIANT — SHE OPENS UP.</b> Innocence 55+. She talks: about being his age when Fagin took her in, about what the years since have been. Sets `$nancyOpened` — the trust that later makes her saveable at London Bridge. Innocence +5, Standing −5 (Fagin notices where he spends his evenings).</span>]\
+(else:)[<span class="stub"><b>VARIANT — SHE SEES FAGIN'S BOY.</b> Innocence below 55. She is kind in a flat, guarded way and gives him nothing; she has met too many boys who carry what they hear back up the stairs. No flags move. A player whose innocence recovers (Pentonville restores 10) can come back and find her different — the revisit is the reward.</span>]
+
+[[Continue->Nightfall]]
+
+:: The Attic Window [excursion] {"position":"540,1050","size":"100,100"}
+(set: $visited's Attic to true)<span class="stub"><span class="beat"><b>OPEN EXCURSION — STAY IN.</b> The den empty. The window with the rotten shutter. Fagin's box comes out when he thinks Oliver is asleep.</span><span class="note">Structural: the "do nothing" option, which every hub needs or the player never gets a quiet passage. Also the only way to see the box, so it is not really doing nothing. No axis movement — deliberately.</span></span>
+
+[[Continue->Nightfall]]
+
+:: Sikes's Lodging [excursion] {"position":"400,1120","size":"100,100"}
+(set: $visited's Sikes to true)(set: $sikesTrusts to true)(set: $standing to it + 10)(set: $innocence to it - 10)<span class="stub"><span class="beat"><b>OPEN EXCURSION — GATED at `$standing` 25.</b> Bill Sikes and the dog. Bull's-eye is the tell: what Sikes does to the animal is what Sikes is.</span><span class="note">Structural: sets `$sikesTrusts`, which changes the Chertsey burglary and opens the Jacob's Island ending. The most expensive excursion in innocence, and the player should be able to feel that it is a door closing.</span></span>
+
+[[Continue->Nightfall]]
+
+:: Following Fagin [excursion] {"position":"540,1170","size":"100,100"}
+(set: $visited's Follow to true)(set: $followedFagin to true)(set: $standing to it + 5)(set: $innocence to it - 5)<span class="stub"><span class="beat"><b>OPEN EXCURSION — GATED at `$standing` 40 + `$learnedTheTrick`.</b> Fagin goes out at night on his own business. Oliver follows him to the meeting with Monks and hears part of it.</span><span class="note">Structural: the conspiracy excursion — the player who has gone furthest into Fagin's confidence is the one who learns Fagin is also being used. Sets `$followedFagin`, which is the alternative route to the Locket ending for players who missed the portrait.</span></span>
+
+[[Continue->Nightfall]]
+
+:: The Chertsey Briefing [epilogue] {"position":"760,880","size":"100,100"}
+<span class="stub"><span class="beat"><b>THE DOOR — briefing.</b> Toby Crackit, the house at Chertsey, the small window only a boy will fit through. Sikes with the pistol: whatever happens inside, Oliver goes through the window.</span><span class="note">Structural: last passage where the hub still exists behind you. No choice offered, and that absence should be conspicuous.</span></span>
+
+[[Continue->The Burglary]]
+
+:: The Burglary [epilogue] {"position":"900,1000","size":"100,100"}
+<span class="stub"><span class="beat"><b>THE DOOR.</b> Through the window, the lantern, the shout, the gunshot. Oliver is hit. Sikes drags him back through, then drops him in a ditch and runs.</span><span class="note">Structural: the one-way door. Everything before is a loop; everything after is a branch. Which door it opens is decided entirely by state accumulated in the hub — the player chooses their ending here without being asked a question, which is the design working.</span></span>
+
+(if: $sikesTrusts and $innocence < 45)[<span class="stub"><b>ROUTE — SIKES.</b> `$sikesTrusts` and low innocence: Sikes does not drop him.</span>
+[[Continue->Sikes's Flight]] ]
+(else:)[<span class="stub"><b>ROUTE — THE DITCH.</b> Default. He is left.</span>
+[[Continue->The Ditch]] ]
+
+:: The Ditch [epilogue] {"position":"1040,1000","size":"100,100"}
+<span class="stub"><span class="beat"><b>EPILOGUE.</b> Dawn, a ditch, a wounded boy. He crawls to the nearest house, which is the house he was made to break into.</span><span class="note">Structural: Dickens's coincidence, and it is too good to lose. Splits on innocence.</span></span>
+
+(if: $innocence >= 55)[ [[The door opens->The Maylies]] ]
+(else:)[ [[Back to Field Lane->Ending: The Made Thief]] ]
+
+:: The Maylies [epilogue] {"position":"1180,940","size":"100,100"}
+<span class="stub"><span class="beat"><b>EPILOGUE.</b> Rose Maylie and Mrs Maylie take him in rather than give him up. Doctor Losberne lies to the constables for him.</span><span class="note">Structural: the mirror of Pentonville, but this one holds. Always routes through London Bridge — Nancy goes to Rose on her own initiative, as in the novel; she does not need Oliver's permission to be brave. What Oliver can do for her there is another matter.</span></span>
+
+[[Word comes from Nancy->London Bridge]]
+
+:: London Bridge [epilogue] {"position":"1180,1080","size":"100,100"}
+<span class="stub"><span class="beat"><b>EPILOGUE — THE PIVOT.</b> Nancy on the steps of London Bridge, telling Rose and Brownlow what she knows about Monks. Noah Claypole is listening in the dark, and he will tell Fagin.</span><span class="note">Structural: the player's last real choice. Nancy has already done the brave thing; the question is whether Oliver protects her or lets it run.</span></span>
+
+(link-goto: "Warn her she was followed.", "London Bridge: Warned")
+(link-goto: "Say nothing.", "London Bridge: Silent")
+
+:: London Bridge: Warned [epilogue] {"position":"1320,1080","size":"100,100"}
+(set: $warnedNancy to true)(set: $innocence to it + 10)<span class="stub"><span class="beat"><b>BRANCH — WARNED.</b> Innocence +10. `$warnedNancy` true. Whether the warning lands splits below, on `$nancyOpened`.</span><span class="note">Design ruling (Dr Quill, 2026-08-12): Nancy is saveable. But the warning alone is not enough — it only works if she trusts the boy giving it, and that trust was built (or not) back in the hub. Saving her takes both halves: the relationship and the warning. Neither alone.</span></span>
+
+(if: $nancyOpened)[(set: $nancySaved to true)<span class="stub"><b>VARIANT — SHE BELIEVES HIM.</b> `$nancyOpened` is true: she knows this boy, and when he says she was followed she goes. Sets `$nancySaved`. She refuses Rose's money but takes the boat. Bill never finds her.</span>]\
+(else:)[<span class="stub"><b>VARIANT — SHE DOESN'T.</b> `$nancyOpened` is false: a warning from a boy she never let in. She thanks him and stays, and what happens in the novel happens here. The player did the right thing too late — the failure was weeks ago, in the hub.</span>]
+
+[[Continue->Monks]]
+
+:: London Bridge: Silent [epilogue] {"position":"1320,1180","size":"100,100"}
+(set: $warnedNancy to false)(set: $innocence to it - 10)<span class="stub"><span class="beat"><b>BRANCH — SILENT.</b> Innocence −10. `$nancySaved` stays false whatever the relationship was.</span><span class="note">The bitterest read is a player who earned her trust in the hub and then held his tongue here. The prose should know the difference — `$nancyOpened` true makes this silence a betrayal, false makes it mere cowardice.</span></span>
+
+[[Continue->Monks]]
+
+:: Monks [epilogue] {"position":"1180,820","size":"100,100"}
+<span class="stub"><span class="beat"><b>EPILOGUE — THE LAST CHOICE.</b> Brownlow takes Monks. The half-brother, the will, the locket thrown in the river at Jacob's Island. Oliver's mother finally gets a name. Then Brownlow asks one more thing: Fagin is taken, and the case wants a witness who lived in that room. Will the boy swear to what he saw?</span><span class="note">Structural: the convergence point — every route that is not Sikes's passes through here — and the game's final test. Everyone Oliver could protect or damn has been someone else's to decide until now. Fagin fed him, taught him, and sold him; both facts are true; the player picks which one to act on.</span></span>
+
+(if: $nancySaved)[<span class="stub"><b>VARIANT — NANCY LIVES.</b> `$nancySaved`: it is Nancy's evidence, sent from safety, that took Monks. She is the reason this scene exists at all — the prose should let that be felt.</span>]\
+(else-if: $nancyOpened)[<span class="stub"><b>VARIANT — NANCY IS DEAD.</b> She trusted him and it did not save her. What she knew reached Brownlow anyway, at the price the novel sets.</span>]
+
+(link-goto: "Swear to it.", "Monks: Testify")
+(link-goto: "Refuse.", "Monks: Refuse")
+
+:: Monks: Testify [epilogue] {"position":"1320,760","size":"100,100"}
+(set: $gaveUpFagin to true)(set: $innocence to it - 10)<span class="stub"><span class="beat"><b>BRANCH — TESTIFY.</b> Innocence −10. Sets `$gaveUpFagin`. Routes to the Rope regardless of everything else.</span><span class="note">In the novel Fagin hangs on Noah's evidence; here the player can make it theirs. The cost is deliberate: even a run qualified for the Locket forfeits it in this room. Whether −10 is the right price, or whether testifying should cost the Locket at all, is tunable — but the design wants the last door to close by the player's own hand.</span></span>
+
+[[Continue->Ending: The Rope]]
+
+:: Monks: Refuse [epilogue] {"position":"1320,860","size":"100,100"}
+<span class="stub"><span class="beat"><b>BRANCH — REFUSE.</b> No flags move. Fagin hangs anyway — Noah's evidence is enough — but not by Oliver's word. Routes on merit: the Locket if the run has earned it, the Rope if not.</span><span class="note">Refusal is not mercy, and the prose should not pretend it is. It is the one thing Oliver can keep.</span></span>
+
+(if: ($knowsLocket or $followedFagin) and $innocence >= 60)[ [[Continue->Ending: The Locket]] ]
+(else:)[ [[Continue->Ending: The Rope]] ]
+
+:: Sikes's Flight [epilogue] {"position":"1040,1180","size":"100,100"}
+(set: $wentWithSikes to true)<span class="stub"><span class="beat"><b>EPILOGUE — SIKES ROUTE.</b> After Nancy, Sikes runs, and Oliver is with him. Out through Hatfield, back into London because there is nowhere else, and down to Jacob's Island.</span><span class="note">Structural: the route the novel never offers. The whole point of the design is that it exists.</span></span>
+
+[[Continue->Ending: Jacob's Island]]
+
+:: Ending: The Locket [ending] {"position":"1400,820","size":"100,100"}
+<span class="stub"><span class="beat"><b>ENDING 1 — THE LOCKET.</b> Reached with (`$knowsLocket` or `$followedFagin`), Innocence 60+, and a refusal at Monks. Name restored, Brownlow's adoption, the inheritance.</span><span class="note">Dickens's ending, and it should be the hardest to reach, not the default. If it turns out to be easy in playtest, raise the innocence gate rather than adding passages.</span><span class="note">Splits on `$nancySaved`: if she lives, the ending carries a letter from her, unsigned, from somewhere with sea air. If she died believing him — or not believing him — the locket has her fingerprints on it too, and the prose should say so.</span></span>
+
+(link: "Begin again")[<script>sessionStorage.removeItem("Saved Session");window.location.reload();</script>]
+
+:: Ending: The Made Thief [ending] {"position":"1400,970","size":"100,100"}
+<span class="stub"><span class="beat"><b>ENDING 2 — THE MADE THIEF.</b> Reached on low innocence. Oliver takes Dodger's place; Dodger has been transported. The game closes on a new boy coming up the stairs at Field Lane.</span><span class="note">The ending the novel refuses, and the reason for building it this way. Should be written to feel like an achievement and then to curdle. Explicit callback to the Barnet passage — same offer, other side of it.</span></span>
+
+(link: "Begin again")[<script>sessionStorage.removeItem("Saved Session");window.location.reload();</script>]
+
+:: Ending: Jacob's Island [ending] {"position":"1400,1180","size":"100,100"}
+<span class="stub"><span class="beat"><b>ENDING 3 — JACOB'S ISLAND.</b> Reached via `$sikesTrusts` + low innocence. The rooftop at Folly Ditch, the crowd below, Sikes hanging himself by accident with his own rope. Oliver on the roof with him.</span><span class="note">Structural: the ending with no rescue and no name. Also the one that best uses a 3D scene, if the DSS toolkit gets carried over.</span></span>
+
+(link: "Begin again")[<script>sessionStorage.removeItem("Saved Session");window.location.reload();</script>]
+
+:: Ending: The Rope [ending] {"position":"1400,1080","size":"100,100"}
+<span class="stub"><span class="beat"><b>ENDING 4 — THE ROPE.</b> Fagin's last night in the condemned cell at Newgate, and Oliver is brought to see him. Fagin will not say where the papers are and does not know who Oliver is any more.</span><span class="note">Structural: the coldest ending. Reached by testifying against Fagin (whatever else the run earned), or by refusing with a run that fell short of the Locket. Oliver survives, gets nothing back, and watches the only person who ever wanted him hang.</span><span class="note">Splits on `$gaveUpFagin`: if the player testified, the visit to the cell is something Oliver asked for and regrets; if not, Brownlow brings him. Also worth a `$nancySaved` grace note — one thing saved out of all of it.</span></span>
+
+(link: "Begin again")[<script>sessionStorage.removeItem("Saved Session");window.location.reload();</script>]
