@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Fagin's Den — Field Lane, Saffron Hill</title>
+<style>
+* { margin: 0; padding: 0; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+#datestamp {
+  position: absolute; top: 18px; right: 24px;
+  font: 14px monospace; color: rgba(200,140,60,0.5);
+  pointer-events: none;
+}
+#location {
+  position: absolute; bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  font: 12px 'Courier New', monospace; color: rgba(200,180,140,0.4);
+  letter-spacing: 2px; pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div id="datestamp">SAFFRON HILL, 1837</div>
+<div id="location">FAGIN'S DEN, FIELD LANE</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====== dssScene — REUSABLE 3D ATMOSPHERE TOOLKIT ===========
+// ============================================================
+// Procedural materials and props extracted from the Chippy /
+// Pillars / Lackland scenes so new 3D approach scenes can pull
+// the same Soho-night look without re-deriving every texture.
+//
+// Usage (inside a scene IIFE, after THREE is loaded):
+//   var brickMat = dssScene.makeGrimyBrick({ baseColor: 0x7a5a48 });
+//   var roadMat  = dssScene.makeGrimyRoad();
+//   var paveMat  = dssScene.makePavingSlabs();
+//   var stucco   = dssScene.makeWeatheredStucco();
+//   dssScene.createVictorianGasLamp(scene, -4, 3.5);
+//   var btn = dssScene.createEnterButton('ENTER THE SOMEWHERE',
+//     function() { /* nav handler */ });
+//   wrap.appendChild(btn);
+//
+// All `make*` factories return a THREE.MeshStandardMaterial with
+// `map`/`repeat` set, ready to apply to geometry. `create*`
+// factories build a THREE.Group (or DOM element) and add it for
+// you when given a parent.
+// ------------------------------------------------------------
+window.dssScene = (function() {
+
+  // ---------- canvas texture helper ----------
+  function makeCanvasTexture(w, h, drawFunc) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var cx = c.getContext('2d');
+    drawFunc(cx, w, h);
+    var tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+    return tex;
+  }
+
+  // ---------- GRIMY BRICK ----------
+  // Running-bond brickwork with mortar courses, soot streaks,
+  // damp/lichen patches, paste-up ghost, top soot wash.
+  // opts:
+  //   baseColor:  fill rgb (default 0x6f4f3a)
+  //   repeat:     [u, v] tiling (default [2, 4])
+  //   sootStreaks: count (default 5)
+  //   dampPatches: count (default 5)
+  //   lichen:      count (default 12)
+  //   highlightBricks: count of brighter-painted bricks (default 8)
+  function makeGrimyBrick(opts) {
+    opts = opts || {};
+    var base = '#' + (opts.baseColor || 0x6f4f3a).toString(16).padStart(6, '0');
+    var streaks = opts.sootStreaks != null ? opts.sootStreaks : 5;
+    var damp    = opts.dampPatches != null ? opts.dampPatches : 5;
+    var lichen  = opts.lichen      != null ? opts.lichen      : 12;
+    var highlights = opts.highlightBricks != null ? opts.highlightBricks : 8;
+    var tex = makeCanvasTexture(512, 512, function(cx, w, h) {
+      cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+      var bH = 14, bW = 32;
+      for (var by = 0; by < h; by += bH) {
+        var rowOff = ((Math.floor(by / bH)) % 2 === 0) ? 0 : bW / 2;
+        for (var bx = -bW; bx < w + bW; bx += bW) {
+          var px = bx + rowOff;
+          var r = 95 + Math.floor(Math.random() * 50);
+          var g = 60 + Math.floor(Math.random() * 35);
+          var b = 45 + Math.floor(Math.random() * 30);
+          if (Math.random() > 0.94) { r -= 40; g -= 32; b -= 22; }
+          if (Math.random() > 0.96) { r += 30; g += 18; b += 10; }
+          cx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+          cx.fillRect(px + 1, by + 1, bW - 2, bH - 2);
+          cx.fillStyle = 'rgba(20,12,6,' + (0.05 + Math.random() * 0.10).toFixed(3) + ')';
+          cx.fillRect(px + 1, by + bH - 3, bW - 2, 2);
+        }
+      }
+      cx.fillStyle = 'rgba(170, 145, 115, 0.32)';
+      for (var hy = 0; hy < h; hy += bH) cx.fillRect(0, hy, w, 1);
+      cx.fillStyle = 'rgba(160, 135, 105, 0.22)';
+      for (var hyy = 0; hyy < h; hyy += bH) {
+        var ro = ((Math.floor(hyy / bH)) % 2 === 0) ? 0 : bW / 2;
+        for (var hxx = ro; hxx < w; hxx += bW) cx.fillRect(hxx, hyy, 1.4, bH);
+      }
+      for (var ss = 0; ss < streaks; ss++) {
+        var sx = Math.random() * w;
+        var sxw = 12 + Math.random() * 30;
+        var sg = cx.createLinearGradient(sx, 0, sx, h);
+        sg.addColorStop(0, 'rgba(8, 6, 4, 0.55)');
+        sg.addColorStop(0.3, 'rgba(12, 10, 6, 0.32)');
+        sg.addColorStop(0.7, 'rgba(18, 14, 9, 0.12)');
+        sg.addColorStop(1, 'rgba(22, 18, 10, 0)');
+        cx.fillStyle = sg; cx.fillRect(sx - sxw / 2, 0, sxw, h);
+      }
+      for (var d = 0; d < damp; d++) {
+        var dx = Math.random() * w;
+        var dy = h * 0.45 + Math.random() * h * 0.55;
+        var dr = 30 + Math.random() * 50;
+        var dg2 = cx.createRadialGradient(dx, dy, 0, dx, dy, dr);
+        dg2.addColorStop(0, 'rgba(60, 75, 55, 0.32)');
+        dg2.addColorStop(0.5, 'rgba(50, 60, 45, 0.16)');
+        dg2.addColorStop(1, 'rgba(40, 50, 40, 0)');
+        cx.fillStyle = dg2; cx.fillRect(dx - dr, dy - dr, dr * 2, dr * 2);
+      }
+      for (var lp = 0; lp < lichen; lp++) {
+        cx.fillStyle = 'rgba(95, 105, 60, ' + (0.10 + Math.random() * 0.18).toFixed(3) + ')';
+        cx.beginPath();
+        cx.ellipse(Math.random() * w, Math.random() * h,
+          5 + Math.random() * 12, 3 + Math.random() * 6.6,
+          Math.random() * Math.PI, 0, Math.PI * 2);
+        cx.fill();
+      }
+      var topG = cx.createLinearGradient(0, 0, 0, h * 0.45);
+      topG.addColorStop(0, 'rgba(18, 12, 8, 0.42)');
+      topG.addColorStop(1, 'rgba(18, 12, 8, 0)');
+      cx.fillStyle = topG; cx.fillRect(0, 0, w, h * 0.45);
+      cx.fillStyle = 'rgba(220, 200, 160, 0.08)';
+      cx.fillRect(w * 0.12, h * 0.42, w * 0.18, h * 0.13);
+      for (var hl = 0; hl < highlights; hl++) {
+        var hbx = Math.floor(Math.random() * (w / bW)) * bW;
+        var hby = Math.floor(Math.random() * (h / bH)) * bH;
+        cx.fillStyle = 'rgba(220, 195, 150, ' + (0.10 + Math.random() * 0.15).toFixed(3) + ')';
+        cx.fillRect(hbx + 1, hby + 1, bW - 2, 2);
+      }
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    var r = opts.repeat || [2, 4];
+    tex.repeat.set(r[0], r[1]);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92 });
+  }
+
+  // ---------- WEATHERED STUCCO ----------
+  // Cream stucco with hairline cracks, nicotine wash pooling
+  // lower, soot streaks from gutters, damp/green patches, paint-
+  // patch repairs, paste-up ghost, bird splat.
+  // opts:
+  //   baseColor: default 0xc8b89a
+  //   repeat:    default [2, 3]
+  function makeWeatheredStucco(opts) {
+    opts = opts || {};
+    var base = '#' + (opts.baseColor || 0xc8b89a).toString(16).padStart(6, '0');
+    var tex = makeCanvasTexture(512, 512, function(cx, w, h) {
+      cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+      for (var pp = 0; pp < 350; pp++) {
+        var b = 180 + Math.floor(Math.random() * 30);
+        cx.fillStyle = 'rgba(' + b + ',' + (b - 18) + ',' + (b - 32) + ',0.12)';
+        cx.beginPath();
+        cx.ellipse(Math.random() * w, Math.random() * h,
+          6 + Math.random() * 24, 4 + Math.random() * 14, Math.random() * Math.PI, 0, Math.PI * 2);
+        cx.fill();
+      }
+      var nicoG = cx.createLinearGradient(0, h * 0.35, 0, h);
+      nicoG.addColorStop(0, 'rgba(170, 145, 80, 0)');
+      nicoG.addColorStop(0.6, 'rgba(170, 145, 80, 0.10)');
+      nicoG.addColorStop(1, 'rgba(160, 130, 60, 0.18)');
+      cx.fillStyle = nicoG; cx.fillRect(0, h * 0.35, w, h * 0.65);
+      for (var ss = 0; ss < 6; ss++) {
+        var sx = Math.random() * w;
+        var sxw = 10 + Math.random() * 26;
+        var sg = cx.createLinearGradient(sx, 0, sx, h);
+        sg.addColorStop(0, 'rgba(15, 12, 8, 0.50)');
+        sg.addColorStop(0.4, 'rgba(20, 16, 10, 0.22)');
+        sg.addColorStop(0.85, 'rgba(25, 20, 12, 0.08)');
+        sg.addColorStop(1, 'rgba(25, 20, 12, 0)');
+        cx.fillStyle = sg; cx.fillRect(sx - sxw / 2, 0, sxw, h);
+      }
+      for (var d = 0; d < 4; d++) {
+        var dx = Math.random() * w;
+        var dy = h * 0.7 + Math.random() * h * 0.3;
+        var dr = 32 + Math.random() * 50;
+        var dg2 = cx.createRadialGradient(dx, dy, 0, dx, dy, dr);
+        dg2.addColorStop(0, 'rgba(70, 80, 55, 0.30)');
+        dg2.addColorStop(1, 'rgba(40, 50, 40, 0)');
+        cx.fillStyle = dg2; cx.fillRect(dx - dr, dy - dr, dr * 2, dr * 2);
+      }
+      cx.strokeStyle = 'rgba(50, 38, 22, 0.45)'; cx.lineWidth = 0.7;
+      for (var ch = 0; ch < 14; ch++) {
+        cx.beginPath();
+        var cxh = Math.random() * w, cyh = Math.random() * h;
+        cx.moveTo(cxh, cyh);
+        for (var sg2 = 0; sg2 < 5; sg2++) {
+          cxh += (Math.random() - 0.5) * 28; cyh += 12 + Math.random() * 22;
+          cx.lineTo(cxh, cyh);
+        }
+        cx.stroke();
+      }
+      for (var pr = 0; pr < 8; pr++) {
+        var prx = Math.random() * w, pry = Math.random() * h;
+        var prr = 12 + Math.random() * 22;
+        var pg = cx.createRadialGradient(prx, pry, 0, prx, pry, prr);
+        pg.addColorStop(0, 'rgba(225, 210, 180, 0.45)');
+        pg.addColorStop(0.6, 'rgba(220, 200, 170, 0.14)');
+        pg.addColorStop(1, 'rgba(220, 200, 170, 0)');
+        cx.fillStyle = pg;
+        cx.beginPath();
+        cx.ellipse(prx, pry, prr, prr * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.fillStyle = 'rgba(200, 170, 130, 0.10)';
+      cx.fillRect(w * 0.18, h * 0.55, w * 0.12, h * 0.10);
+      cx.fillStyle = 'rgba(245, 240, 215, 0.36)';
+      cx.beginPath();
+      cx.ellipse(w * 0.88, h * 0.08, 5, 2.5, 0.4, 0, Math.PI * 2);
+      cx.fill();
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    var r = opts.repeat || [2, 3];
+    tex.repeat.set(r[0], r[1]);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+  }
+
+  // ---------- GRIMY ROAD ----------
+  // Tarmac with aggregate speckle, lighter repair patches, jagged
+  // cracks, wandering tar-seal sealant lines, oil blotches, faded
+  // white centre line.
+  function makeGrimyRoad(opts) {
+    opts = opts || {};
+    var base = '#' + (opts.baseColor || 0x1c1c1c).toString(16).padStart(6, '0');
+    var tex = makeCanvasTexture(512, 512, function(cx, w, h) {
+      cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+      for (var p = 0; p < 4200; p++) {
+        var pg = 25 + Math.floor(Math.random() * 70);
+        cx.fillStyle = 'rgba(' + pg + ',' + pg + ',' + pg + ',0.42)';
+        cx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+      }
+      for (var rp = 0; rp < 6; rp++) {
+        var rx = Math.random() * w, ry = Math.random() * h;
+        var rwd = 50 + Math.random() * 100, rht = 35 + Math.random() * 70;
+        cx.fillStyle = 'rgba(78, 78, 78, ' + (0.16 + Math.random() * 0.22).toFixed(3) + ')';
+        cx.fillRect(rx, ry, rwd, rht);
+        cx.strokeStyle = 'rgba(100, 100, 100, 0.18)'; cx.lineWidth = 0.6;
+        cx.strokeRect(rx, ry, rwd, rht);
+      }
+      cx.strokeStyle = 'rgba(8, 8, 8, 0.8)'; cx.lineWidth = 1.2;
+      for (var c = 0; c < 10; c++) {
+        cx.beginPath();
+        var cx0 = Math.random() * w, cy0 = Math.random() * h;
+        cx.moveTo(cx0, cy0);
+        var ang = Math.random() * Math.PI * 2, len = 30 + Math.random() * 80;
+        cx.lineTo(cx0 + Math.cos(ang) * len, cy0 + Math.sin(ang) * len);
+        cx.lineTo(cx0 + Math.cos(ang + 0.4) * len * 1.4, cy0 + Math.sin(ang + 0.4) * len * 1.4);
+        cx.stroke();
+      }
+      cx.strokeStyle = 'rgba(0, 0, 0, 0.9)'; cx.lineWidth = 2.6;
+      for (var tm = 0; tm < 5; tm++) {
+        cx.beginPath();
+        var tx = Math.random() * w, ty = Math.random() * h;
+        cx.moveTo(tx, ty);
+        for (var ts = 0; ts < 5; ts++) {
+          tx += (Math.random() - 0.5) * 30; ty += 8 + Math.random() * 16;
+          cx.lineTo(tx, ty);
+        }
+        cx.stroke();
+      }
+      cx.fillStyle = 'rgba(220, 220, 200, 0.5)';
+      cx.fillRect(w * 0.5 - 2, h * 0.3, 4, h * 0.4);
+      cx.fillStyle = 'rgba(220, 220, 200, 0.18)';
+      cx.fillRect(w * 0.5 - 2, h * 0.05, 4, h * 0.2);
+      cx.fillRect(w * 0.5 - 2, h * 0.75, 4, h * 0.2);
+      for (var os = 0; os < 4; os++) {
+        var ox = Math.random() * w, oy = Math.random() * h;
+        var orr = 8 + Math.random() * 18;
+        var og = cx.createRadialGradient(ox, oy, 0, ox, oy, orr);
+        og.addColorStop(0, 'rgba(0, 0, 0, 0.62)');
+        og.addColorStop(0.7, 'rgba(15, 12, 5, 0.22)');
+        og.addColorStop(1, 'rgba(15, 12, 5, 0)');
+        cx.fillStyle = og; cx.fillRect(ox - orr, oy - orr, orr * 2, orr * 2);
+      }
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    var r = opts.repeat || [1, 8];
+    tex.repeat.set(r[0], r[1]);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.78, metalness: 0.18 });
+  }
+
+  // ---------- PAVING SLABS ----------
+  // London paving slabs with grout, cracks, gum/fag-ends and
+  // wet patches.
+  function makePavingSlabs(opts) {
+    opts = opts || {};
+    var base = '#' + (opts.baseColor || 0x3a3a36).toString(16).padStart(6, '0');
+    var tex = makeCanvasTexture(512, 512, function(cx, w, h) {
+      cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+      var sw = 128, sh = 96;
+      cx.strokeStyle = 'rgba(18, 18, 16, 0.55)'; cx.lineWidth = 1.4;
+      for (var sy = 0; sy < h; sy += sh) {
+        var off = ((sy / sh) % 2 === 0) ? 0 : sw / 2;
+        for (var sx = -sw; sx < w + sw; sx += sw) {
+          var bxp = sx + off;
+          var sg = 48 + Math.floor(Math.random() * 28);
+          cx.fillStyle = 'rgba(' + sg + ',' + sg + ',' + (sg - 4) + ',' + (0.32 + Math.random() * 0.3).toFixed(3) + ')';
+          cx.fillRect(bxp, sy, sw, sh);
+          cx.strokeRect(bxp, sy, sw, sh);
+        }
+      }
+      cx.strokeStyle = 'rgba(15, 15, 12, 0.55)'; cx.lineWidth = 0.9;
+      for (var c2 = 0; c2 < 7; c2++) {
+        cx.beginPath();
+        cx.moveTo(Math.random() * w, Math.random() * h);
+        cx.lineTo(Math.random() * w, Math.random() * h);
+        cx.stroke();
+      }
+      for (var fe = 0; fe < 60; fe++) {
+        cx.fillStyle = 'rgba(180, 175, 165, ' + (0.15 + Math.random() * 0.22).toFixed(3) + ')';
+        cx.beginPath();
+        cx.arc(Math.random() * w, Math.random() * h, 1.0 + Math.random() * 1.6, 0, Math.PI * 2);
+        cx.fill();
+      }
+      for (var wp = 0; wp < 5; wp++) {
+        var wpx = Math.random() * w, wpy = Math.random() * h;
+        var wpr = 35 + Math.random() * 60;
+        var wpg = cx.createRadialGradient(wpx, wpy, 0, wpx, wpy, wpr);
+        wpg.addColorStop(0, 'rgba(72, 78, 80, 0.35)');
+        wpg.addColorStop(1, 'rgba(72, 78, 80, 0)');
+        cx.fillStyle = wpg; cx.fillRect(wpx - wpr, wpy - wpr, wpr * 2, wpr * 2);
+      }
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    var r = opts.repeat || [4, 4];
+    tex.repeat.set(r[0], r[1]);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.88 });
+  }
+
+  // ---------- VICTORIAN GAS LAMP ----------
+  // Cast-iron stepped base, fluted shaft, mid-band, ladder rest,
+  // capital, 4-sided emissive glass lantern, pyramidal cap,
+  // crown finial, point light, halo + inner-core sprites.
+  // Adds the lamp group to `parent` at (x, 0, z). Returns the
+  // group (with `.userData.light` set to the PointLight).
+  //
+  // opts:
+  //   intensity:   point-light intensity (default 0.5)
+  //   distance:    point-light range (default 10)
+  //   lampColor:   point-light + glow colour (default 0xffd6a0)
+  //   haloScale:   outer halo sprite size (default 2.2)
+  //   coreScale:   inner-core sprite size (default 0.9)
+  //   paneColor:   solid emissive pane colour (default 0xfff0c8)
+  function createVictorianGasLamp(parent, x, z, opts) {
+    opts = opts || {};
+    var lampColor = opts.lampColor || 0xffd6a0;
+    var paneColor = opts.paneColor || 0xfff0c8;
+    var g = new THREE.Group();
+    var castIron = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.78, metalness: 0.22 });
+    var darkIron = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.7, metalness: 0.3 });
+    var brassish = new THREE.MeshStandardMaterial({ color: 0x6a4a1a, roughness: 0.6, metalness: 0.35 });
+    function place(geo, mat, px, py, pz) {
+      var m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); g.add(m); return m;
+    }
+    // Stepped base
+    place(new THREE.CylinderGeometry(0.24, 0.28, 0.10, 16), castIron, 0, 0.05, 0);
+    place(new THREE.CylinderGeometry(0.20, 0.24, 0.18, 16), castIron, 0, 0.19, 0);
+    place(new THREE.CylinderGeometry(0.17, 0.20, 0.05, 16), darkIron, 0, 0.31, 0);
+    place(new THREE.BoxGeometry(0.32, 0.32, 0.32), castIron, 0, 0.50, 0);
+    place(new THREE.CylinderGeometry(0.11, 0.16, 0.06, 16), darkIron, 0, 0.69, 0);
+    // Shaft
+    place(new THREE.CylinderGeometry(0.058, 0.10, 3.9, 16), castIron, 0, 2.65, 0);
+    // Mid-band
+    place(new THREE.CylinderGeometry(0.082, 0.082, 0.06, 16), darkIron, 0, 1.55, 0);
+    place(new THREE.CylinderGeometry(0.090, 0.090, 0.02, 16), darkIron, 0, 1.58, 0);
+    place(new THREE.CylinderGeometry(0.090, 0.090, 0.02, 16), darkIron, 0, 1.52, 0);
+    // Ladder rest
+    place(new THREE.BoxGeometry(0.52, 0.018, 0.018), castIron, 0, 4.45, 0);
+    place(new THREE.BoxGeometry(0.018, 0.018, 0.52), castIron, 0, 4.45, 0);
+    place(new THREE.SphereGeometry(0.024, 6, 4), castIron,  0.26, 4.45, 0);
+    place(new THREE.SphereGeometry(0.024, 6, 4), castIron, -0.26, 4.45, 0);
+    place(new THREE.SphereGeometry(0.024, 6, 4), castIron, 0, 4.45,  0.26);
+    place(new THREE.SphereGeometry(0.024, 6, 4), castIron, 0, 4.45, -0.26);
+    // Capital
+    place(new THREE.CylinderGeometry(0.085, 0.062, 0.08, 16), castIron, 0, 4.66, 0);
+    place(new THREE.CylinderGeometry(0.105, 0.085, 0.04, 16), darkIron, 0, 4.72, 0);
+    place(new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12), castIron, 0, 4.81, 0);
+    // Lantern base + 4 emissive panes
+    place(new THREE.BoxGeometry(0.34, 0.04, 0.34), darkIron, 0, 4.91, 0);
+    var paneMat = new THREE.MeshBasicMaterial({ color: paneColor });
+    var paneF = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.40), paneMat);
+    paneF.position.set(0, 5.16, 0.134); g.add(paneF);
+    var paneB = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.40), paneMat);
+    paneB.position.set(0, 5.16, -0.134); paneB.rotation.y = Math.PI; g.add(paneB);
+    var paneL = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.40), paneMat);
+    paneL.position.set(-0.134, 5.16, 0); paneL.rotation.y = Math.PI / 2; g.add(paneL);
+    var paneR = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.40), paneMat);
+    paneR.position.set(0.134, 5.16, 0); paneR.rotation.y = -Math.PI / 2; g.add(paneR);
+    // Corner posts + cross-bars
+    var corners = [[0.135, 0.135], [-0.135, 0.135], [0.135, -0.135], [-0.135, -0.135]];
+    for (var cp = 0; cp < 4; cp++) {
+      place(new THREE.BoxGeometry(0.028, 0.44, 0.028), darkIron, corners[cp][0], 5.16, corners[cp][1]);
+    }
+    place(new THREE.BoxGeometry(0.28, 0.018, 0.018), darkIron, 0, 5.16,  0.135);
+    place(new THREE.BoxGeometry(0.28, 0.018, 0.018), darkIron, 0, 5.16, -0.135);
+    place(new THREE.BoxGeometry(0.018, 0.018, 0.28), darkIron,  0.135, 5.16, 0);
+    place(new THREE.BoxGeometry(0.018, 0.018, 0.28), darkIron, -0.135, 5.16, 0);
+    // Top plate + pyramidal cap
+    place(new THREE.BoxGeometry(0.36, 0.045, 0.36), darkIron, 0, 5.40, 0);
+    var cap = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.20, 4), castIron);
+    cap.position.set(0, 5.52, 0); cap.rotation.y = Math.PI / 4; g.add(cap);
+    // Crown finial
+    place(new THREE.SphereGeometry(0.034, 8, 6), darkIron, 0, 5.66, 0);
+    place(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 8), darkIron, 0, 5.74, 0);
+    place(new THREE.SphereGeometry(0.018, 6, 4), brassish,  0, 5.82, 0);
+    // Point light
+    var light = new THREE.PointLight(lampColor, opts.intensity != null ? opts.intensity : 0.5, opts.distance != null ? opts.distance : 10);
+    light.position.set(0, 5.16, 0); light.castShadow = true; g.add(light);
+    // Halo sprite
+    var glowTex = makeCanvasTexture(128, 128, function(cx, w, h) {
+      var grad = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      grad.addColorStop(0, 'rgba(255, 220, 150, 0.85)');
+      grad.addColorStop(0.25, 'rgba(255, 200, 110, 0.40)');
+      grad.addColorStop(0.6, 'rgba(220, 160, 70, 0.08)');
+      grad.addColorStop(1, 'rgba(180, 120, 50, 0)');
+      cx.fillStyle = grad; cx.fillRect(0, 0, w, h);
+    });
+    var halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, opacity: 0.7 }));
+    halo.position.set(0, 5.16, 0);
+    var hs = opts.haloScale || 2.2;
+    halo.scale.set(hs, hs, 1); g.add(halo);
+    // Inner core
+    var coreTex = makeCanvasTexture(64, 64, function(cx, w, h) {
+      var grad = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      grad.addColorStop(0, 'rgba(255, 245, 200, 1)');
+      grad.addColorStop(0.3, 'rgba(255, 220, 140, 0.55)');
+      grad.addColorStop(1, 'rgba(255, 200, 110, 0)');
+      cx.fillStyle = grad; cx.fillRect(0, 0, w, h);
+    });
+    var core = new THREE.Sprite(new THREE.SpriteMaterial({ map: coreTex, transparent: true, opacity: 0.9 }));
+    core.position.set(0, 5.16, 0);
+    var cs = opts.coreScale || 0.9;
+    core.scale.set(cs, cs, 1); g.add(core);
+    g.position.set(x, 0, z); g.userData.light = light;
+    parent.add(g); return g;
+  }
+
+  // ---------- HOODED SHOP LAMP ----------
+  // Bracket-out + downward-cone hood + bulb + warm point light.
+  // Adds to `parent` at the given world position.
+  function createHoodedShopLamp(parent, x, y, z, opts) {
+    opts = opts || {};
+    var body = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.5 });
+    function place(geo, mat, px, py, pz) {
+      var m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); parent.add(m); return m;
+    }
+    // Bracket
+    place(new THREE.BoxGeometry(0.04, 0.04, 0.32), body, x, y, z);
+    // Hood
+    var hood = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.10, 0.16, 12), body);
+    hood.position.set(x, y - 0.10, z + 0.16); parent.add(hood);
+    // Bulb
+    var bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xfff0c8 }));
+    bulb.position.set(x, y - 0.22, z + 0.16); parent.add(bulb);
+    // Light
+    var light = new THREE.PointLight(opts.lightColor || 0xffe5a0,
+      opts.intensity != null ? opts.intensity : 0.45,
+      opts.distance != null ? opts.distance : 4);
+    light.position.set(x, y - 0.4, z + 0.19);
+    parent.add(light);
+    return { hood: hood, bulb: bulb, light: light };
+  }
+
+  // ---------- ENTER BUTTON (Ginger-Light style) ----------
+  // Standard approach button: transparent dark fill, coloured
+  // text + border, fades in, hover brightens.
+  // Returns the DOM element. Caller appends + wires onclick.
+  function createEnterButton(label, opts) {
+    opts = opts || {};
+    var color = opts.color || '232,180,80';
+    var hover = opts.hoverColor || '255,210,120';
+    var fadeIn = opts.fadeInMs != null ? opts.fadeInMs : 1800;
+    var btn = document.createElement('div');
+    btn.textContent = label;
+    btn.style.cssText = [
+      'position:fixed', 'bottom:60px', 'left:50%', 'transform:translateX(-50%)',
+      'font:13px "Courier New",monospace',
+      'color:rgba(' + color + ',0.85)',
+      'letter-spacing:4px', 'cursor:pointer', 'padding:12px 28px',
+      'border:1px solid rgba(' + color + ',0.3)',
+      'background:rgba(0,0,0,0.4)',
+      'z-index:9004', 'white-space:nowrap',
+      'opacity:0', 'transition:opacity 1.5s ease, color 0.3s ease, border-color 0.3s ease'
+    ].join(';');
+    setTimeout(function() { btn.style.opacity = '1'; }, fadeIn);
+    btn.addEventListener('mouseenter', function() {
+      this.style.color = 'rgba(' + hover + ',0.95)';
+      this.style.borderColor = 'rgba(' + color + ',0.6)';
+    });
+    btn.addEventListener('mouseleave', function() {
+      this.style.color = 'rgba(' + color + ',0.85)';
+      this.style.borderColor = 'rgba(' + color + ',0.3)';
+    });
+    return btn;
+  }
+
+  // ---------- UV FLY-KILLER ----------
+  // Grey casing + slatted grille + bright additive-blended violet
+  // UV tube + bluish halo sprite. Adds parts to `parent` centred
+  // at (x, y, z). Returns { casing, light }.
+  function createFlyKiller(parent, x, y, z, opts) {
+    opts = opts || {};
+    function place(geo, mat, px, py, pz) {
+      var m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); parent.add(m); return m;
+    }
+    // Casing
+    var casing = place(new THREE.BoxGeometry(0.85, 0.32, 0.10),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2c, roughness: 0.65, metalness: 0.25 }),
+      x, y, z);
+    // Grille slats
+    for (var fk = 0; fk < 5; fk++) {
+      place(new THREE.BoxGeometry(0.78, 0.018, 0.015),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.7, metalness: 0.3 }),
+        x, y - 0.11 + fk * 0.06, z + 0.05);
+    }
+    // UV tube (additive)
+    var tubeMat = new THREE.MeshBasicMaterial({
+      color: 0x6a90ff, blending: THREE.AdditiveBlending,
+      transparent: true, opacity: 1.0, depthWrite: false
+    });
+    var tube = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.18), tubeMat);
+    tube.position.set(x, y, z + 0.07); parent.add(tube);
+    // Inner core
+    var coreMat = new THREE.MeshBasicMaterial({
+      color: 0xcad8ff, blending: THREE.AdditiveBlending,
+      transparent: true, opacity: 1.0, depthWrite: false
+    });
+    var core = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.06), coreMat);
+    core.position.set(x, y, z + 0.08); parent.add(core);
+    // Halo
+    var haloTex = makeCanvasTexture(64, 64, function(cx, w, h) {
+      var grad = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      grad.addColorStop(0, 'rgba(120, 160, 255, 0.95)');
+      grad.addColorStop(0.4, 'rgba(80, 120, 255, 0.35)');
+      grad.addColorStop(1, 'rgba(60, 100, 255, 0)');
+      cx.fillStyle = grad; cx.fillRect(0, 0, w, h);
+    });
+    var halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: haloTex, transparent: true, opacity: 0.85,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    halo.position.set(x, y, z + 0.09); halo.scale.set(1.3, 0.5, 1); parent.add(halo);
+    // Light spill
+    var light = new THREE.PointLight(0x4060ff,
+      opts.intensity != null ? opts.intensity : 0.55,
+      opts.distance != null ? opts.distance : 3.5);
+    light.position.set(x, y - 0.15, z - 0.1); parent.add(light);
+    return { casing: casing, light: light };
+  }
+
+  // ---------- DRESSED WINDOW ----------
+  // Painted room seen through an upper-storey window: lamp-lit or dark,
+  // dressed with side drapes (style 0), a half-drawn roller blind (1),
+  // or net curtains (2). Returns a MeshBasicMaterial ready for a plane.
+  var DRESSED_CURTAIN_COLS = ['#7a2c22', '#5a5a30', '#6a4a5a', '#3a4a58'];
+  function makeDressedWindow(lit, style, colIdx) {
+    var tex = makeCanvasTexture(128, 192, function(cx, w, h) {
+      if (lit) {
+        var bgg = cx.createLinearGradient(0, 0, 0, h);
+        bgg.addColorStop(0, '#c89448'); bgg.addColorStop(0.5, '#a87434'); bgg.addColorStop(1, '#6a4820');
+        cx.fillStyle = bgg; cx.fillRect(0, 0, w, h);
+        var cg = cx.createRadialGradient(w * 0.5, h * 0.16, 4, w * 0.5, h * 0.2, w * 0.55);
+        cg.addColorStop(0, 'rgba(255, 235, 180, 0.9)');
+        cg.addColorStop(1, 'rgba(255, 220, 150, 0)');
+        cx.fillStyle = cg;
+        cx.beginPath(); cx.arc(w * 0.5, h * 0.18, w * 0.55, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = 'rgba(85, 55, 22, 0.55)';
+        cx.fillRect(w * 0.4, h * 0.44, w * 0.2, h * 0.13);
+        cx.strokeStyle = 'rgba(200, 170, 90, 0.5)'; cx.lineWidth = 2;
+        cx.strokeRect(w * 0.4, h * 0.44, w * 0.2, h * 0.13);
+        var fsh = cx.createLinearGradient(0, h * 0.7, 0, h);
+        fsh.addColorStop(0, 'rgba(40, 24, 8, 0)');
+        fsh.addColorStop(1, 'rgba(40, 24, 8, 0.55)');
+        cx.fillStyle = fsh; cx.fillRect(0, 0, w, h);
+      } else {
+        var bgd = cx.createLinearGradient(0, 0, 0, h);
+        bgd.addColorStop(0, '#232c3e'); bgd.addColorStop(1, '#131a26');
+        cx.fillStyle = bgd; cx.fillRect(0, 0, w, h);
+        cx.fillStyle = 'rgba(150, 160, 180, 0.07)';
+        cx.beginPath();
+        cx.moveTo(w * 0.55, 0); cx.lineTo(w * 0.8, 0);
+        cx.lineTo(w * 0.35, h); cx.lineTo(w * 0.1, h);
+        cx.closePath(); cx.fill();
+      }
+      if (style === 1) {
+        cx.fillStyle = lit ? '#c8b890' : '#39404e';
+        cx.fillRect(3, 0, w - 6, h * 0.38);
+        cx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        cx.fillRect(3, h * 0.365, w - 6, 3.5);
+        cx.strokeStyle = 'rgba(40, 30, 15, 0.7)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(w / 2, h * 0.38); cx.lineTo(w / 2, h * 0.43); cx.stroke();
+        cx.beginPath(); cx.arc(w / 2, h * 0.45, 3, 0, Math.PI * 2); cx.stroke();
+      }
+      if (style === 2) {
+        cx.fillStyle = 'rgba(235, 233, 222, 0.3)';
+        cx.fillRect(0, 0, w, h * 0.88);
+        for (var nv = 0; nv < w; nv += 9) {
+          cx.fillStyle = 'rgba(255, 255, 250, ' + (0.05 + (nv % 27 === 0 ? 0.08 : 0)) + ')';
+          cx.fillRect(nv, 0, 4, h * 0.88);
+        }
+        cx.fillStyle = 'rgba(235, 233, 222, 0.35)';
+        for (var sc2 = 0; sc2 < 4; sc2++) {
+          cx.beginPath();
+          cx.arc(w * (0.125 + sc2 * 0.25), h * 0.88, w * 0.125, 0, Math.PI);
+          cx.fill();
+        }
+      } else {
+        var dCol = lit ? DRESSED_CURTAIN_COLS[(colIdx || 0) % DRESSED_CURTAIN_COLS.length] : '#1e1a22';
+        var drawDrape = function() {
+          cx.fillStyle = dCol;
+          cx.beginPath();
+          cx.moveTo(0, 0);
+          cx.lineTo(w * 0.32, 0);
+          cx.quadraticCurveTo(w * 0.2, h * 0.3, w * 0.15, h * 0.55);
+          cx.quadraticCurveTo(w * 0.19, h * 0.72, w * 0.27, h * 0.92);
+          cx.lineTo(0, h * 0.95);
+          cx.closePath(); cx.fill();
+          cx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; cx.lineWidth = 2.5;
+          for (var fl2 = 0; fl2 < 3; fl2++) {
+            cx.beginPath();
+            cx.moveTo(w * (0.06 + fl2 * 0.08), 4);
+            cx.quadraticCurveTo(w * (0.03 + fl2 * 0.06), h * 0.4, w * (0.05 + fl2 * 0.07), h * 0.88);
+            cx.stroke();
+          }
+          cx.strokeStyle = 'rgba(255, 240, 210, ' + (lit ? 0.25 : 0.06) + ')'; cx.lineWidth = 1.5;
+          cx.beginPath();
+          cx.moveTo(w * 0.29, 4);
+          cx.quadraticCurveTo(w * 0.17, h * 0.32, w * 0.13, h * 0.55);
+          cx.stroke();
+        };
+        drawDrape();
+        cx.save(); cx.translate(w, 0); cx.scale(-1, 1); drawDrape(); cx.restore();
+        cx.fillStyle = lit ? 'rgba(40, 20, 12, 0.9)' : 'rgba(10, 8, 12, 0.9)';
+        cx.fillRect(0, 0, w, 7);
+      }
+    });
+    return new THREE.MeshBasicMaterial({ map: tex });
+  }
+
+  return {
+    makeCanvasTexture: makeCanvasTexture,
+    makeGrimyBrick: makeGrimyBrick,
+    makeWeatheredStucco: makeWeatheredStucco,
+    makeGrimyRoad: makeGrimyRoad,
+    makePavingSlabs: makePavingSlabs,
+    makeDressedWindow: makeDressedWindow,
+    createVictorianGasLamp: createVictorianGasLamp,
+    createHoodedShopLamp: createHoodedShopLamp,
+    createEnterButton: createEnterButton,
+    createFlyKiller: createFlyKiller
+  };
+})();
+</script>
+<script>
+// ============================================================
+// FAGIN'S DEN — Field Lane, Saffron Hill
+// Interior attic scene built on the dssScene toolkit.
+// References: exposed oak trusses w/ tie beams + queen struts,
+// sooted brick chimney breast w/ rough segmental arch, bare
+// worn floorboards, cold small-pane window vs warm hearth.
+// Signature detail: silk handkerchiefs on lines between beams.
+// ============================================================
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050403);
+scene.fog = new THREE.Fog(0x050403, 6, 20);
+
+var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0.75, 1.55, 2.05);
+camera.lookAt(-3.5, 0.85, -0.35);
+
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+// ---------- procedural WOOD materials (den-specific; toolkit has no wood) ----------
+
+// Worn floorboards: long planks along x, grain, nail pairs, gaps, sooty wear.
+function makeFloorboards(opts) {
+  opts = opts || {};
+  var tex = dssScene.makeCanvasTexture(512, 512, function(cx, w, h) {
+    cx.fillStyle = '#4a3826'; cx.fillRect(0, 0, w, h);
+    var pW = 42;
+    for (var py = 0; py < h; py += pW) {
+      var seed = Math.random();
+      var r = 66 + Math.floor(seed * 34), g = 50 + Math.floor(seed * 24), b = 32 + Math.floor(seed * 14);
+      cx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+      cx.fillRect(0, py + 1, w, pW - 2);
+      // grain
+      for (var gr = 0; gr < 14; gr++) {
+        cx.strokeStyle = 'rgba(30, 20, 10, ' + (0.10 + Math.random() * 0.22).toFixed(3) + ')';
+        cx.lineWidth = 0.8 + Math.random() * 1.4;
+        cx.beginPath();
+        var gy = py + 3 + Math.random() * (pW - 6);
+        cx.moveTo(0, gy);
+        cx.bezierCurveTo(w * 0.3, gy + (Math.random() - 0.5) * 7, w * 0.7, gy + (Math.random() - 0.5) * 7, w, gy);
+        cx.stroke();
+      }
+      // butt joints + nail pairs
+      var joint = Math.random() * w;
+      cx.fillStyle = 'rgba(12, 8, 4, 0.8)';
+      cx.fillRect(joint, py + 1, 2, pW - 2);
+      cx.fillStyle = 'rgba(20, 16, 12, 0.9)';
+      cx.beginPath(); cx.arc(joint + 8, py + pW * 0.3, 1.6, 0, Math.PI * 2); cx.fill();
+      cx.beginPath(); cx.arc(joint + 8, py + pW * 0.7, 1.6, 0, Math.PI * 2); cx.fill();
+      // gap shadow between planks
+      cx.fillStyle = 'rgba(5, 3, 2, 0.85)';
+      cx.fillRect(0, py + pW - 1.5, w, 1.5);
+    }
+    // wear + soot wash
+    for (var wp = 0; wp < 7; wp++) {
+      var wx = Math.random() * w, wy = Math.random() * h, wr = 40 + Math.random() * 80;
+      var wg = cx.createRadialGradient(wx, wy, 0, wx, wy, wr);
+      var tone = Math.random() > 0.5 ? '200, 180, 140' : '10, 7, 4';
+      wg.addColorStop(0, 'rgba(' + tone + ', 0.13)');
+      wg.addColorStop(1, 'rgba(' + tone + ', 0)');
+      cx.fillStyle = wg; cx.fillRect(wx - wr, wy - wr, wr * 2, wr * 2);
+    }
+  });
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  var rep = opts.repeat || [2, 2];
+  tex.repeat.set(rep[0], rep[1]);
+  return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.93, metalness: 0.02 });
+}
+
+// Smoke-blackened hand-hewn oak: adze marks, checks, sheen variance.
+function makeAgedBeam(opts) {
+  opts = opts || {};
+  var baseHex = opts.baseColor != null ? opts.baseColor : 0x33241a;
+  var base = '#' + baseHex.toString(16).padStart(6, '0');
+  var tex = dssScene.makeCanvasTexture(256, 256, function(cx, w, h) {
+    cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+    // long grain
+    for (var gr = 0; gr < 26; gr++) {
+      cx.strokeStyle = 'rgba(15, 9, 5, ' + (0.12 + Math.random() * 0.25).toFixed(3) + ')';
+      cx.lineWidth = 0.7 + Math.random() * 2.0;
+      var gy = Math.random() * h;
+      cx.beginPath(); cx.moveTo(0, gy);
+      cx.bezierCurveTo(w * 0.35, gy + (Math.random() - 0.5) * 9, w * 0.65, gy + (Math.random() - 0.5) * 9, w, gy + (Math.random() - 0.5) * 5);
+      cx.stroke();
+    }
+    // drying checks (short dark splits)
+    for (var ck = 0; ck < 9; ck++) {
+      cx.strokeStyle = 'rgba(4, 2, 1, 0.75)';
+      cx.lineWidth = 1 + Math.random() * 1.6;
+      var kx = Math.random() * w, ky = Math.random() * h;
+      cx.beginPath(); cx.moveTo(kx, ky); cx.lineTo(kx + 14 + Math.random() * 40, ky + (Math.random() - 0.5) * 5); cx.stroke();
+    }
+    // adze facets: soft angled highlights
+    for (var ad = 0; ad < 12; ad++) {
+      cx.fillStyle = 'rgba(120, 90, 55, ' + (0.05 + Math.random() * 0.09).toFixed(3) + ')';
+      var ax = Math.random() * w, ay = Math.random() * h;
+      cx.beginPath();
+      cx.ellipse(ax, ay, 12 + Math.random() * 20, 4 + Math.random() * 6, (Math.random() - 0.5) * 0.5, 0, Math.PI * 2);
+      cx.fill();
+    }
+  });
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  var rep = opts.repeat || [1.5, 0.5];
+  tex.repeat.set(rep[0], rep[1]);
+  return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
+}
+
+// ---------- ROOM SHELL ----------
+// Ridge along x. Room x: -4.2..4.2, half-span 2.9, eaves y 0.9, ridge y 3.7.
+var HX = 4.2, HZ = 2.9, EAVE = 0.9, RIDGE = 3.7;
+var slopeLen = Math.sqrt(HZ * HZ + (RIDGE - EAVE) * (RIDGE - EAVE));
+var slopeAng = Math.atan2(RIDGE - EAVE, HZ);
+
+var floorMat = makeFloorboards({ repeat: [2.4, 2.4] });
+var floor = new THREE.Mesh(new THREE.PlaneGeometry(HX * 2, HZ * 2), floorMat);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+// Roof underside planes (dark boarding between rafters)
+var roofDeckMat = makeAgedBeam({ baseColor: 0x241a12, repeat: [6, 3] });
+[-1, 1].forEach(function(side) {
+  var deck = new THREE.Mesh(new THREE.PlaneGeometry(HX * 2, slopeLen), roofDeckMat);
+  deck.position.set(0, (EAVE + RIDGE) / 2, side * HZ / 2);
+  deck.rotation.x = side > 0 ? -(Math.PI / 2 - slopeAng) : (Math.PI / 2 - slopeAng);
+  if (side > 0) deck.rotation.y = Math.PI;
+  deck.rotation.order = 'YXZ';
+  scene.add(deck);
+});
+
+// Low eaves walls (weathered plaster)
+var eaveMat = dssScene.makeWeatheredStucco
+  ? dssScene.makeWeatheredStucco({ baseColor: 0x3e352a, repeat: [8, 1.2], dampPatches: 1 })
+  : new THREE.MeshStandardMaterial({ color: 0x6a5c48 });
+[-1, 1].forEach(function(side) {
+  var wall = new THREE.Mesh(new THREE.PlaneGeometry(HX * 2, EAVE), eaveMat);
+  wall.position.set(0, EAVE / 2, side * HZ);
+  wall.rotation.y = side > 0 ? Math.PI : 0;
+  scene.add(wall);
+});
+
+// ---------- TIMBER FRAME ----------
+var beamMat = makeAgedBeam({ baseColor: 0x30221a });
+var darkBeamMat = makeAgedBeam({ baseColor: 0x261b14 });
+
+function beam(w, h, d, x, y, z, mat) {
+  var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat || beamMat);
+  m.position.set(x, y, z);
+  scene.add(m);
+  return m;
+}
+
+// Ridge beam
+beam(HX * 2, 0.18, 0.15, 0, RIDGE - 0.09, 0);
+
+// Rafters: paired, sloping from eaves to ridge, every 0.7 along x
+for (var rx = -HX + 0.35; rx < HX; rx += 0.7) {
+  [-1, 1].forEach(function(side) {
+    var r = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, slopeLen), darkBeamMat);
+    r.position.set(rx, (EAVE + RIDGE) / 2 + 0.07, side * HZ / 2);
+    r.rotation.x = side > 0 ? slopeAng : -slopeAng;
+    scene.add(r);
+  });
+}
+
+// Purlins: horizontal, midway up each slope
+[-1, 1].forEach(function(side) {
+  var p = new THREE.Mesh(new THREE.BoxGeometry(HX * 2, 0.16, 0.16), beamMat);
+  p.position.set(0, (EAVE + RIDGE) / 2 + 0.02, side * HZ / 2 * 1.0);
+  scene.add(p);
+});
+
+// Two trusses: tie beam + queen struts + collar (ref photo 1)
+[-1.4, 1.4].forEach(function(tx) {
+  beam(0.22, 0.26, HZ * 2, tx, 1.65, 0);                    // tie beam across
+  beam(0.16, RIDGE - 0.5 - 1.78, 0.16, tx, (1.78 + RIDGE - 0.5) / 2, -0.95); // queen strut
+  beam(0.16, RIDGE - 0.5 - 1.78, 0.16, tx, (1.78 + RIDGE - 0.5) / 2, 0.95);  // queen strut
+  beam(0.14, 0.18, 2.1, tx, RIDGE - 0.62, 0);               // collar
+});
+
+// Corner posts at gables
+[-1, 1].forEach(function(sx) {
+  [-1, 1].forEach(function(sz) {
+    beam(0.2, EAVE + 0.85, 0.2, sx * (HX - 0.12), (EAVE + 0.85) / 2, sz * (HZ - 0.35));
+  });
+});
+
+// ---------- CHIMNEY GABLE (x = -HX) ----------
+// Sooted brick chimney breast, protruding, with rough segmental-arch fireplace.
+var sootBrick = dssScene.makeGrimyBrick({ baseColor: 0x4a382c, repeat: [1.6, 2.6], sootStreaks: 8, dampPatches: 3, lichen: 4 });
+var heavySoot = dssScene.makeGrimyBrick({ baseColor: 0x2e211a, repeat: [1.2, 1.6], sootStreaks: 10, dampPatches: 2, lichen: 2 });
+
+// Gable wall behind (plaster + studs)
+var gableMat = dssScene.makeWeatheredStucco({ baseColor: 0x352e24, repeat: [5, 3.5], dampPatches: 1 });
+var gableGeoA = new THREE.PlaneGeometry(HZ * 2, RIDGE);
+var gableA = new THREE.Mesh(gableGeoA, gableMat);
+gableA.position.set(-HX, RIDGE / 2, 0);
+gableA.rotation.y = Math.PI / 2;
+scene.add(gableA);
+
+// Chimney breast: wide base block + narrower stack, fireplace opening framed
+var stack = new THREE.Mesh(new THREE.BoxGeometry(0.45, RIDGE - 2.1, 1.3), heavySoot);
+stack.position.set(-HX + 0.23, 2.1 + (RIDGE - 2.1) / 2, -0.35);
+scene.add(stack);
+
+// Fireplace: piers flanking a REAL opening (a solid box buries the embers
+// inside it — the DSS buried-plane bug). Opening z -0.85..0.15, height 0.85.
+var pierGeo = new THREE.BoxGeometry(0.55, 0.85, 0.6);
+var pierL = new THREE.Mesh(pierGeo, sootBrick);
+pierL.position.set(-HX + 0.28, 0.425, -1.15);
+scene.add(pierL);
+var pierR = new THREE.Mesh(pierGeo, sootBrick);
+pierR.position.set(-HX + 0.28, 0.425, 0.45);
+scene.add(pierR);
+// firebox interior: sooted back + sides, then embers in FRONT of the back
+var fbDark = new THREE.MeshStandardMaterial({ color: 0x0a0604, roughness: 1 });
+var fbBack = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.85), fbDark);
+fbBack.position.set(-HX + 0.06, 0.425, -0.35);
+fbBack.rotation.y = Math.PI / 2;
+scene.add(fbBack);
+[-0.85, 0.15].forEach(function(fz, i) {
+  var side = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.85), fbDark);
+  side.position.set(-HX + 0.31, 0.425, fz);
+  side.rotation.y = i === 0 ? 0 : Math.PI;
+  side.material = fbDark;
+  scene.add(side);
+});
+var emberTex = dssScene.makeCanvasTexture(256, 128, function(cx, w, h) {
+  cx.fillStyle = '#0a0402'; cx.fillRect(0, 0, w, h);
+  // banked coal bed: hot pockets low down, ash above
+  for (var e = 0; e < 60; e++) {
+    var ex = Math.random() * w, ey = h * 0.45 + Math.random() * h * 0.55;
+    var er = 4 + Math.random() * 13;
+    var heat = Math.random();
+    var eg = cx.createRadialGradient(ex, ey, 0, ex, ey, er);
+    if (heat > 0.72) { eg.addColorStop(0, 'rgba(255,190,80,0.95)'); eg.addColorStop(0.5, 'rgba(240,90,15,0.6)'); }
+    else if (heat > 0.4) { eg.addColorStop(0, 'rgba(220,70,12,0.8)'); eg.addColorStop(0.5, 'rgba(140,35,6,0.45)'); }
+    else { eg.addColorStop(0, 'rgba(90,22,5,0.7)'); eg.addColorStop(0.5, 'rgba(50,12,3,0.4)'); }
+    eg.addColorStop(1, 'rgba(10,3,1,0)');
+    cx.fillStyle = eg; cx.fillRect(ex - er, ey - er, er * 2, er * 2);
+  }
+  // char lines between coals
+  for (var ch = 0; ch < 20; ch++) {
+    cx.strokeStyle = 'rgba(0,0,0,0.6)'; cx.lineWidth = 1 + Math.random() * 2;
+    var chx = Math.random() * w, chy = h * 0.4 + Math.random() * h * 0.6;
+    cx.beginPath(); cx.moveTo(chx, chy); cx.lineTo(chx + 10 + Math.random() * 25, chy + (Math.random() - 0.5) * 8); cx.stroke();
+  }
+});
+var emberMat = new THREE.MeshBasicMaterial({ map: emberTex });
+var emberBack = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.55), emberMat);
+emberBack.position.set(-HX + 0.12, 0.29, -0.35);
+emberBack.rotation.y = Math.PI / 2;
+scene.add(emberBack);
+// low flame glow sitting in the mouth of the fire
+var mouthGlow = makeGlowSpriteLater = null;
+// coals at the mouth
+for (var cl = 0; cl < 5; cl++) {
+  var coalLump = new THREE.Mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.04, 5, 4),
+    new THREE.MeshStandardMaterial({ color: 0x120c08, roughness: 1, emissive: 0x1a0500 }));
+  coalLump.position.set(-HX + 0.25 + Math.random() * 0.2, 0.05, -0.6 + Math.random() * 0.5);
+  scene.add(coalLump);
+}
+// rough segmental arch: shallow angled brick boxes over the opening
+for (var ab = 0; ab < 7; ab++) {
+  var arch = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.16), heavySoot);
+  var az = -0.83 + ab * 0.16;
+  arch.position.set(-HX + 0.28, 0.88 + Math.sin((ab / 6) * Math.PI) * 0.07, az);
+  arch.rotation.x = (ab - 3) * 0.1;
+  scene.add(arch);
+}
+// upper panel of the breast, above the opening
+var upper = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.2, 2.2), sootBrick);
+upper.position.set(-HX + 0.28, 1.5, -0.35);
+scene.add(upper);
+// Hearth stone
+var hearth = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 1.5),
+  dssScene.makePavingSlabs ? dssScene.makePavingSlabs({ repeat: [1, 1.5] }) : new THREE.MeshStandardMaterial({ color: 0x555 }));
+hearth.position.set(-HX + 0.95, 0.03, -0.35);
+scene.add(hearth);
+
+// Mantel beam over the opening
+beam(0.3, 0.2, 1.7, -HX + 0.5, 1.08, -0.35, beamMat);
+
+// ---------- WINDOW GABLE (x = +HX) ----------
+var gableB = new THREE.Mesh(gableGeoA.clone(), dssScene.makeWeatheredStucco({ baseColor: 0x3a3228, repeat: [5, 3.5], dampPatches: 1 }));
+gableB.position.set(HX, RIDGE / 2, 0);
+gableB.rotation.y = -Math.PI / 2;
+scene.add(gableB);
+
+// Studs on window gable
+for (var sz2 = -2; sz2 <= 2; sz2++) {
+  beam(0.09, 2.0, 0.13, HX - 0.06, 1.0, sz2 * 0.9, darkBeamMat);
+}
+
+// Four-pane casement, cold moonlight
+var winW = 0.85, winH = 1.0;
+var moonPane = new THREE.MeshBasicMaterial({ color: 0x8aa8c8, side: THREE.DoubleSide });
+var win = new THREE.Mesh(new THREE.PlaneGeometry(winW, winH), moonPane);
+win.position.set(HX - 0.05, 1.45, 0.55);
+win.rotation.y = -Math.PI / 2;
+scene.add(win);
+// glazing bars
+beam(0.06, winH, 0.05, HX - 0.08, 1.45, 0.55, darkBeamMat);
+beam(0.06, 0.05, winW, HX - 0.08, 1.45, 0.55, darkBeamMat);
+// frame
+beam(0.08, winH + 0.12, 0.09, HX - 0.07, 1.45, 0.55 - winW / 2 - 0.04, darkBeamMat);
+beam(0.08, winH + 0.12, 0.09, HX - 0.07, 1.45, 0.55 + winW / 2 + 0.04, darkBeamMat);
+beam(0.08, 0.09, winW + 0.2, HX - 0.07, 1.45 + winH / 2 + 0.04, 0.55, darkBeamMat);
+beam(0.08, 0.09, winW + 0.2, HX - 0.07, 1.45 - winH / 2 - 0.04, 0.55, darkBeamMat);
+
+// Moon glow sprite behind the panes (AdditiveBlending — memory: dead-grey otherwise)
+function makeGlowSprite(colorStops, size) {
+  var tex = dssScene.makeCanvasTexture(128, 128, function(cx, w, h) {
+    var g = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    colorStops.forEach(function(s) { g.addColorStop(s[0], s[1]); });
+    cx.fillStyle = g; cx.fillRect(0, 0, w, h);
+  });
+  var m = new THREE.SpriteMaterial({ map: tex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  var sp = new THREE.Sprite(m);
+  sp.scale.set(size, size, 1);
+  return sp;
+}
+var moonGlow = makeGlowSprite([[0, 'rgba(150,185,220,0.55)'], [0.4, 'rgba(110,140,180,0.22)'], [1, 'rgba(80,100,140,0)']], 2.2);
+moonGlow.position.set(HX - 0.15, 1.45, 0.55);
+scene.add(moonGlow);
+
+// ---------- HANDKERCHIEF LINES (the Fagin signature) ----------
+// Strings between the two trusses; silk squares pegged along them.
+var hankGroup = new THREE.Group();
+var silkColors = [0x6e3228, 0x32424e, 0x56482a, 0x413043, 0x33483a, 0x6a4c30, 0x523238];
+var hankMeshes = [];
+[[-0.6, 1.95], [0.6, 1.75]].forEach(function(line, li) {
+  var lz = line[0], ly = line[1];
+  // the string
+  var str = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 2.8, 4),
+    new THREE.MeshBasicMaterial({ color: 0x1a1410 }));
+  str.rotation.z = Math.PI / 2;
+  str.position.set(0, ly, lz);
+  hankGroup.add(str);
+  for (var hk = 0; hk < 6; hk++) {
+    var hx = -1.7 + hk * 0.42 + (li ? 0.2 : 0);
+    var col = silkColors[(hk + li * 3) % silkColors.length];
+    var hankMat = new THREE.MeshStandardMaterial({ color: col, side: THREE.DoubleSide, roughness: 0.6, emissive: col, emissiveIntensity: 0.22 });
+    var hw = 0.22 + Math.random() * 0.1, hh = 0.26 + Math.random() * 0.12;
+    var hank = new THREE.Mesh(new THREE.PlaneGeometry(hw, hh, 1, 3), hankMat);
+    hank.position.set(hx, ly - hh / 2, lz);
+    hank.rotation.y = (Math.random() - 0.5) * 0.5;
+    hank.rotation.x = 0.12 + Math.random() * 0.1;
+    hankGroup.add(hank);
+    hankMeshes.push({ mesh: hank, phase: Math.random() * Math.PI * 2, baseRy: hank.rotation.y });
+  }
+});
+scene.add(hankGroup);
+
+// ---------- FURNITURE ----------
+var woodMat = makeAgedBeam({ baseColor: 0x3a2a1e, repeat: [1, 1] });
+
+// Long rough table
+var tableTop = beam(2.0, 0.07, 0.75, -0.9, 0.72, 0.35, woodMat);
+[[-1.8, 0.05], [-1.8, 0.65], [0.0, 0.05], [0.0, 0.65]].forEach(function(lp) {
+  beam(0.09, 0.7, 0.09, lp[0], 0.35, lp[1], darkBeamMat);
+});
+// bench
+beam(1.6, 0.06, 0.28, -0.9, 0.42, 1.0, woodMat);
+[[-1.55, 1.0], [-0.25, 1.0]].forEach(function(bp) { beam(0.08, 0.4, 0.24, bp[0], 0.2, bp[1], darkBeamMat); });
+
+// Bottles + tankards on the table (dark glass silhouettes)
+[[-1.5, 0.35], [-1.2, 0.5], [-0.5, 0.25], [-0.2, 0.45]].forEach(function(bp, i) {
+  var bh = 0.15 + (i % 2) * 0.06;
+  var bot = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.036, bh, 7),
+    new THREE.MeshStandardMaterial({ color: i % 2 ? 0x1a2a1a : 0x241a10, roughness: 0.4 }));
+  bot.position.set(bp[0], 0.755 + bh / 2, bp[1]);
+  scene.add(bot);
+});
+
+// Candle on the table with warm point light
+var candle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.09, 6),
+  new THREE.MeshStandardMaterial({ color: 0xa89878, roughness: 0.85 }));
+candle.position.set(-0.85, 0.8, 0.3);
+scene.add(candle);
+var candleGlow = makeGlowSprite([[0, 'rgba(255,200,90,0.9)'], [0.3, 'rgba(255,150,50,0.35)'], [1, 'rgba(200,100,20,0)']], 0.26);
+candleGlow.position.set(-0.85, 0.88, 0.3);
+scene.add(candleGlow);
+
+// Straw pallets under the eaves (the boys' beds) — sacking + straw tone
+var sackMat = new THREE.MeshStandardMaterial({ color: 0x383024, roughness: 1 });
+var strawMat = new THREE.MeshStandardMaterial({ color: 0x40361a, roughness: 1 });
+[[-2.6, -2.2], [-0.9, -2.35], [0.9, -2.25], [2.5, -2.3]].forEach(function(pp, i) {
+  var pallet = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.16, 0.75), i % 2 ? sackMat : strawMat);
+  pallet.position.set(pp[0], 0.08, pp[1]);
+  pallet.rotation.y = (Math.random() - 0.5) * 0.25;
+  scene.add(pallet);
+  var blanket = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.6),
+    new THREE.MeshStandardMaterial({ color: 0x2e2620 + i * 0x040404, roughness: 1 }));
+  blanket.position.set(pp[0] + 0.05, 0.185, pp[1]);
+  blanket.rotation.y = (Math.random() - 0.5) * 0.3;
+  scene.add(blanket);
+});
+
+// Barrel + baskets near the chimney corner
+var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.75, 10), woodMat);
+barrel.position.set(-3.4, 0.375, 1.9);
+scene.add(barrel);
+[0.22, 0.5].forEach(function(bandY) {
+  var band = new THREE.Mesh(new THREE.TorusGeometry(0.325, 0.015, 5, 14),
+    new THREE.MeshStandardMaterial({ color: 0x1a1512, roughness: 0.6, metalness: 0.5 }));
+  band.rotation.x = Math.PI / 2;
+  band.position.set(-3.4, bandY, 1.9);
+  scene.add(band);
+});
+
+// Fagin's box: small dark strongbox half-shadowed beside the chimney
+var boxMat = new THREE.MeshStandardMaterial({ color: 0x241812, roughness: 0.5, metalness: 0.25 });
+var fagBox = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.3), boxMat);
+fagBox.position.set(-3.55, 0.13, -1.9);
+fagBox.rotation.y = 0.4;
+scene.add(fagBox);
+var boxLid = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.06, 0.32), boxMat);
+boxLid.position.set(-3.55, 0.29, -1.9);
+boxLid.rotation.y = 0.4;
+scene.add(boxLid);
+
+// Stools
+[[-1.9, 0.2], [1.1, 1.6]].forEach(function(sp) {
+  var seat = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.16, 0.05, 8), woodMat);
+  seat.position.set(sp[0], 0.45, sp[1]);
+  scene.add(seat);
+  for (var lg = 0; lg < 3; lg++) {
+    var ang = lg * Math.PI * 2 / 3;
+    var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.45, 5), darkBeamMat);
+    leg.position.set(sp[0] + Math.cos(ang) * 0.12, 0.22, sp[1] + Math.sin(ang) * 0.12);
+    leg.rotation.z = Math.cos(ang) * 0.12;
+    leg.rotation.x = -Math.sin(ang) * 0.12;
+    scene.add(leg);
+  }
+});
+
+// ---------- LIGHTING ----------
+// Memory: PointLight terminator bug — decay 2, generous range. Glow sprites additive.
+scene.add(new THREE.AmbientLight(0x181210, 0.9));
+
+// The fire — the scene's heart. Flickers in the render loop.
+var fireLight = new THREE.PointLight(0xff7a24, 1.6, 24, 2);
+fireLight.position.set(-HX + 0.85, 0.7, -0.35);
+scene.add(fireLight);
+var fireGlow = makeGlowSprite([[0, 'rgba(255,150,50,0.85)'], [0.35, 'rgba(255,100,25,0.3)'], [1, 'rgba(180,60,10,0)']], 1.5);
+fireGlow.position.set(-HX + 0.5, 0.5, -0.35);
+scene.add(fireGlow);
+var mouthGlow = makeGlowSprite([[0, 'rgba(255,180,70,0.9)'], [0.4, 'rgba(230,90,18,0.35)'], [1, 'rgba(160,50,8,0)']], 0.75);
+mouthGlow.position.set(-HX + 0.3, 0.35, -0.35);
+scene.add(mouthGlow);
+
+// Candle light, small + warm
+var candleLight = new THREE.PointLight(0xffb858, 0.55, 8, 2);
+candleLight.position.set(-0.85, 1.0, 0.3);
+scene.add(candleLight);
+
+// Cold moonlight through the window — directional shaft
+var moonLight = new THREE.SpotLight(0x6a88b8, 0.5, 18, 0.4, 0.65, 2);
+moonLight.position.set(HX + 1.5, 2.2, 0.55);
+moonLight.target.position.set(-1.2, 0.1, 0.1);
+scene.add(moonLight);
+scene.add(moonLight.target);
+
+// faint cool fill so the shadow side isn't void
+var fill = new THREE.HemisphereLight(0x2a3040, 0x140e08, 0.35);
+scene.add(fill);
+
+// ---------- RENDER LOOP ----------
+var t = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  t += 0.016;
+  // fire flicker: layered sines + jitter
+  var fl = 1.35 + Math.sin(t * 8.3) * 0.16 + Math.sin(t * 23.7) * 0.09 + (Math.random() - 0.5) * 0.12;
+  fireLight.intensity = fl;
+  fireGlow.material.opacity = 0.55 + fl * 0.18;
+  mouthGlow.material.opacity = 0.6 + fl * 0.2;
+  candleLight.intensity = 0.5 + Math.sin(t * 11.2) * 0.07 + (Math.random() - 0.5) * 0.05;
+  // handkerchiefs stir in the draught
+  for (var hi = 0; hi < hankMeshes.length; hi++) {
+    var hm = hankMeshes[hi];
+    hm.mesh.rotation.y = hm.baseRy + Math.sin(t * 1.3 + hm.phase) * 0.16;
+    hm.mesh.rotation.x = Math.sin(t * 0.9 + hm.phase * 1.7) * 0.07;
+  }
+  // very slow camera drift
+  camera.position.x = 0.75 + Math.sin(t * 0.11) * 0.08;
+  camera.position.y = 1.55 + Math.sin(t * 0.17) * 0.04;
+  camera.lookAt(-3.5, 0.85, -0.35);
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', function() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+</body>
+</html>
