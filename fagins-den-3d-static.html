@@ -682,7 +682,7 @@ scene.background = new THREE.Color(0x040302);
 scene.fog = new THREE.Fog(0x040302, 5, 18);
 
 var camera = new THREE.PerspectiveCamera(63, window.innerWidth / window.innerHeight, 0.1, 100);
-var CAM = { x: 1.15, y: 1.5, z: 2.35, tx: -3.3, ty: 0.85, tz: -0.45 };
+var CAM = { x: 1.15, y: 1.45, z: 1.95, tx: -3.3, ty: 0.85, tz: -0.45 };
 camera.position.set(CAM.x, CAM.y, CAM.z);
 camera.lookAt(CAM.tx, CAM.ty, CAM.tz);
 
@@ -863,18 +863,18 @@ function deckPatch(w, h, x, y) {
   farDeck.add(m);
 }
 // hole local: x 0.9..1.7, y -0.1..0.6
-deckPatch(5.1, SL, -1.65, 0);                              // x -4.2..0.9
-deckPatch(2.5, SL, 2.95, 0);                               // x 1.7..4.2
-deckPatch(0.8, SL / 2 - 0.1, 1.3, -(SL / 2 - 0.1) / 2 - 0.1);   // below hole
-deckPatch(0.8, SL / 2 - 0.6, 1.3, (SL / 2 - 0.6) / 2 + 0.6);    // above hole
+deckPatch(3.3, SL, -2.55, 0);                              // x -4.2..-0.9
+deckPatch(4.3, SL, 2.05, 0);                               // x -0.1..4.2
+deckPatch(0.8, SL / 2 - 0.1, -0.5, -(SL / 2 - 0.1) / 2 - 0.1);  // below hole
+deckPatch(0.8, SL / 2 - 0.6, -0.5, (SL / 2 - 0.6) / 2 + 0.6);   // above hole
 // night sky behind the hole
 var sky = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.95),
   new THREE.MeshBasicMaterial({ color: 0x0b1220 }));
-sky.position.set(1.3, 0.25, -0.07);
+sky.position.set(-0.5, 0.25, -0.07);
 farDeck.add(sky);
 // splintered lath ends around the hole
 var splinterMat = makeAgedBeam({ baseColor: 0x241812, repeat: [0.5, 0.3] });
-[[0.86, 0.5, 0.24, 0.03, 0.5], [1.74, 0.1, -0.3, 0.02, 0.42], [1.1, 0.64, 0.5, 0.025, 0.34], [1.52, -0.14, -0.45, 0.02, 0.4]].forEach(function(sp) {
+[[-0.94, 0.5, 0.24, 0.03, 0.5], [-0.06, 0.1, -0.3, 0.02, 0.42], [-0.7, 0.64, 0.5, 0.025, 0.34], [-0.28, -0.14, -0.45, 0.02, 0.4]].forEach(function(sp) {
   var spl = new THREE.Mesh(new THREE.BoxGeometry(sp[3], sp[4], 0.03), splinterMat);
   spl.position.set(sp[0], sp[1], 0.02);
   spl.rotation.z = sp[2];
@@ -906,7 +906,7 @@ beam(HX * 2, 0.18, 0.15, 0, RIDGE - 0.09, 0);
 for (var rx = -HX + 0.35; rx < HX; rx += 0.7) {
   [-1, 1].forEach(function(side) {
     // leave rafters out where the roof is broken
-    if (side < 0 && rx > 0.85 && rx < 1.75) return;
+    if (side < 0 && rx > -0.95 && rx < -0.05) return;
     var r = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, slopeLen), darkBeamMat);
     r.position.set(rx, (EAVE + RIDGE) / 2 + 0.07, side * HZ / 2);
     r.rotation.x = side > 0 ? slopeAng : -slopeAng;
@@ -1042,11 +1042,11 @@ function makeGlowSprite(colorStops, size) {
 
 // ---------- MOON THROUGH THE ROOF HOLE ----------
 farDeck.updateMatrixWorld(true);
-var holeWorld = farDeck.localToWorld(new THREE.Vector3(1.3, 0.25, 0));
-var poolPos = new THREE.Vector3(0.7, 0, -0.35);
+var holeWorld = farDeck.localToWorld(new THREE.Vector3(-0.5, 0.25, 0));
+var poolPos = new THREE.Vector3(-1.35, 0, -0.55);
 
-var moonSpot = new THREE.SpotLight(0x8aa4cc, 1.1, 20, 0.38, 0.75, 2);
-moonSpot.position.copy(holeWorld).add(new THREE.Vector3(0.25, 0.9, -0.5));
+var moonSpot = new THREE.SpotLight(0x8aa4cc, 0.55, 20, 0.42, 0.9, 2);
+moonSpot.position.copy(holeWorld).add(new THREE.Vector3(-0.15, 0.9, -0.5));
 moonSpot.target.position.copy(poolPos);
 scene.add(moonSpot);
 scene.add(moonSpot.target);
@@ -1056,25 +1056,59 @@ var beamDir = new THREE.Vector3().subVectors(poolPos, holeWorld);
 var beamLen = beamDir.length();
 var shaftTex = dssScene.makeCanvasTexture(64, 256, function(cx, w, h) {
   var g = cx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, 'rgba(150,175,215,0.30)');
-  g.addColorStop(0.6, 'rgba(120,145,190,0.13)');
-  g.addColorStop(1, 'rgba(90,110,160,0.02)');
+  g.addColorStop(0, 'rgba(150,175,215,0.16)');
+  g.addColorStop(0.6, 'rgba(120,145,190,0.07)');
+  g.addColorStop(1, 'rgba(90,110,160,0.01)');
   cx.fillStyle = g; cx.fillRect(0, 0, w, h);
 });
 var shaftMat = new THREE.MeshBasicMaterial({
   map: shaftTex, blending: THREE.AdditiveBlending, transparent: true,
   depthWrite: false, side: THREE.DoubleSide
 });
-var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.55, beamLen, 10, 1, true), shaftMat);
+var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.68, beamLen, 10, 1, true), shaftMat);
 shaft.position.copy(holeWorld).lerp(poolPos, 0.5);
 shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), beamDir.clone().normalize());
 scene.add(shaft);
 
+// Dust hanging in the beam: points in the shaft's local space, drifting down
+var moteCount = 130;
+var moteGeo = new THREE.BufferGeometry();
+var motePos = new Float32Array(moteCount * 3);
+var moteSeed = [];
+for (var mi = 0; mi < moteCount; mi++) {
+  var mt = Math.random();                          // 0 top .. 1 bottom of shaft
+  var mr = Math.random() * (0.3 + 0.36 * mt);      // cone widens downward
+  var ma = Math.random() * Math.PI * 2;
+  motePos[mi * 3]     = Math.cos(ma) * mr;
+  motePos[mi * 3 + 1] = beamLen / 2 - mt * beamLen;
+  motePos[mi * 3 + 2] = Math.sin(ma) * mr;
+  moteSeed.push({ a: ma, r: mr, ph: Math.random() * Math.PI * 2, sp: 0.045 + Math.random() * 0.075 });
+}
+moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos, 3));
+var moteMat = new THREE.PointsMaterial({
+  color: 0xaac0dd, size: 0.013, transparent: true, opacity: 0.32,
+  blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+});
+var motes = new THREE.Points(moteGeo, moteMat);
+motes.position.copy(shaft.position);
+motes.quaternion.copy(shaft.quaternion);
+scene.add(motes);
+
+// Smoke wisps: broad faint sprites climbing from the hearth, one crossing the beam
+var smokes = [];
+[[-3.3, 1.3, -0.35, 1.3, 0.05], [-2.6, 1.9, -0.4, 1.7, 0.04], [-0.9, 1.5, -0.5, 1.5, 0.045]].forEach(function(sm) {
+  var wisp = makeGlowSprite([[0, 'rgba(150,140,125,0.32)'], [0.5, 'rgba(120,112,100,0.12)'], [1, 'rgba(90,85,75,0)']], sm[3]);
+  wisp.material.opacity = sm[4];
+  wisp.position.set(sm[0], sm[1], sm[2]);
+  scene.add(wisp);
+  smokes.push({ sp: wisp, x: sm[0], y: sm[1], z: sm[2], ph: Math.random() * Math.PI * 2, base: sm[4] });
+});
+
 // cold pool on the boards
 var poolTex = dssScene.makeCanvasTexture(128, 128, function(cx, w, h) {
   var g = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-  g.addColorStop(0, 'rgba(140,165,205,0.4)');
-  g.addColorStop(0.55, 'rgba(100,125,170,0.16)');
+  g.addColorStop(0, 'rgba(140,165,205,0.2)');
+  g.addColorStop(0.55, 'rgba(100,125,170,0.09)');
   g.addColorStop(1, 'rgba(70,90,130,0)');
   cx.fillStyle = g; cx.fillRect(0, 0, w, h);
 });
@@ -1085,7 +1119,7 @@ pool.position.set(poolPos.x, 0.012, poolPos.z);
 scene.add(pool);
 
 // moon glint at the hole
-var moonGlow = makeGlowSprite([[0, 'rgba(190,210,240,0.7)'], [0.4, 'rgba(130,155,200,0.25)'], [1, 'rgba(90,110,150,0)']], 0.9);
+var moonGlow = makeGlowSprite([[0, 'rgba(190,210,240,0.7)'], [0.4, 'rgba(130,155,200,0.25)'], [1, 'rgba(90,110,150,0)']], 0.6);
 moonGlow.position.copy(holeWorld);
 scene.add(moonGlow);
 
@@ -1120,7 +1154,7 @@ var woodMat = makeAgedBeam({ baseColor: 0x33241a, repeat: [1, 1] });
 
 // Smaller, squarer table, set a little askew
 var tableG = new THREE.Group();
-tableG.position.set(-0.7, 0, 0.55);
+tableG.position.set(-1.05, 0, 0.2);
 tableG.rotation.y = 0.28;
 scene.add(tableG);
 var tTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.8), woodMat);
@@ -1160,9 +1194,9 @@ function makeChair(x, z, yaw, leanBack) {
   scene.add(g);
   return g;
 }
-makeChair(-1.55, 0.75, 1.85, 0);         // pulled out from the table, angled away
-makeChair(-0.15, 1.35, -2.6, 0.05);      // shoved back crooked
+makeChair(-1.95, 0.55, 1.7, 0);          // pulled out from the table, angled away
 makeChair(0.15, -0.2, -0.5, 0);          // facing the table's far side
+makeChair(-0.75, -0.5, -0.15, 0.03);      // second chair, far side
 
 // One chair knocked over near the pallets (somebody left in a hurry)
 var fallen = makeChair(1.7, -1.35, 2.2, 0);
@@ -1192,40 +1226,40 @@ fallen.position.y = 0.19;
 var chesterMat = makeChesterfieldMat();
 var stuffMat = new THREE.MeshStandardMaterial({ color: 0xa8987a, roughness: 1 });
 var chester = new THREE.Group();
-chester.position.set(-2.85, 0, 0.95);
-chester.rotation.y = -2.45;   // turned to face the hearth
+chester.position.set(-2.6, 0, 1.15);
+chester.rotation.y = -2.43;   // turned to face the hearth
 scene.add(chester);
 var cSeat = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.24, 0.68), chesterMat);
-cSeat.position.set(0, 0.32, 0);
+cSeat.position.set(0, 0.28, 0);
 cSeat.rotation.x = 0.05;
 chester.add(cSeat);
 [-1, 1].forEach(function(s) {
   var arm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.42, 0.72), chesterMat);
-  arm.position.set(s * 0.46, 0.41, 0.02);
+  arm.position.set(s * 0.46, 0.37, 0.02);
   chester.add(arm);
   var roll = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.72, 8), chesterMat);
   roll.rotation.x = Math.PI / 2;
-  roll.position.set(s * 0.46, 0.63, 0.02);
+  roll.position.set(s * 0.46, 0.59, 0.02);
   chester.add(roll);
 });
 var cBack = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.62, 0.2), chesterMat);
-cBack.position.set(0, 0.62, -0.36);
+cBack.position.set(0, 0.58, -0.36);
 cBack.rotation.x = -0.12;
 chester.add(cBack);
 var backRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.08, 8), chesterMat);
 backRoll.rotation.z = Math.PI / 2;
-backRoll.position.set(0, 0.94, -0.4);
+backRoll.position.set(0, 0.9, -0.4);
 chester.add(backRoll);
 // stuffing bursting at the seams
-[[0.42, 0.55, 0.3, 0.05], [-0.4, 0.3, 0.34, 0.06], [0.1, 0.86, -0.38, 0.045], [0.3, 0.24, 0.36, 0.04]].forEach(function(st) {
+[[0.42, 0.51, 0.3, 0.05], [-0.4, 0.26, 0.34, 0.06], [0.1, 0.82, -0.38, 0.045], [0.3, 0.2, 0.36, 0.04]].forEach(function(st) {
   var tuft = new THREE.Mesh(new THREE.SphereGeometry(st[3], 6, 5), stuffMat);
   tuft.scale.set(1.4, 0.7, 1);
   tuft.position.set(st[0], st[1], st[2]);
   chester.add(tuft);
 });
 [[-0.42, -0.3], [-0.42, 0.3], [0.42, -0.3], [0.42, 0.3]].forEach(function(fp) {
-  var foot = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.14, 6), darkBeamMat);
-  foot.position.set(fp[0], 0.07, fp[1]);
+  var foot = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.16, 6), darkBeamMat);
+  foot.position.set(fp[0], 0.08, fp[1]);
   chester.add(foot);
 });
 
@@ -1256,25 +1290,26 @@ function makeCandle(parent, x, y, z, h, tilt) {
   return g;
 }
 // three stubs of uneven height on the mantel shelf (shelf top y = 1.18)
-makeCandle(scene, -HX + 0.52, 1.18, -1.0, 0.11, 0.03);
-makeCandle(scene, -HX + 0.52, 1.18, -0.45, 0.055, -0.05);
-makeCandle(scene, -HX + 0.52, 1.18, 0.18, 0.085, 0.02);
+makeCandle(scene, -HX + 0.62, 1.18, -1.0, 0.11, 0.03);
+makeCandle(scene, -HX + 0.6, 1.18, -0.45, 0.055, -0.05);
+makeCandle(scene, -HX + 0.63, 1.18, 0.18, 0.085, 0.02);
 // two on the table (local coords inside the tilted table group)
 makeCandle(tableG, -0.3, 0.75, 0.1, 0.09, 0.04);
 makeCandle(tableG, 0.35, 0.75, -0.2, 0.05, -0.03);
 
 // shared warm lights so the flames light their surroundings
 var mantelLight = new THREE.PointLight(0xffb858, 0.55, 7, 2);
-mantelLight.position.set(-HX + 0.6, 1.45, -0.4);
+mantelLight.position.set(-HX + 0.72, 1.42, -0.35);
 scene.add(mantelLight);
-var tableLight = new THREE.PointLight(0xffb060, 0.5, 6, 2);
-tableLight.position.set(-0.7, 1.0, 0.55);
+var tableLight = new THREE.PointLight(0xffb060, 0.62, 6, 2);
+tableLight.position.set(-1.05, 1.05, 0.2);
 scene.add(tableLight);
 
 // ---------- THE CUCKOO CLOCK (tawdry, incongruous) ----------
 var cuckoo = new THREE.Group();
-cuckoo.position.set(-HX + 0.57, 1.85, 0.35);
-cuckoo.rotation.y = Math.PI / 2;
+cuckoo.position.set(-HX + 0.57, 1.42, 0.68);
+cuckoo.scale.set(1.45, 1.45, 1.45);
+cuckoo.rotation.y = Math.PI / 2 + 0.25;
 scene.add(cuckoo);
 var clockBodyMat = new THREE.MeshStandardMaterial({ color: 0x4a2c16, roughness: 0.7 });
 var clockTrimMat = new THREE.MeshStandardMaterial({ color: 0x7a1e1e, roughness: 0.6 });
@@ -1427,7 +1462,7 @@ mouthGlow.position.set(-HX + 0.3, 0.35, -0.35);
 scene.add(mouthGlow);
 
 var hearthSpill = new THREE.PointLight(0xff8830, 0.65, 9, 2);
-hearthSpill.position.set(-3.1, 0.55, -0.3);
+hearthSpill.position.set(-3.0, 0.6, 0.55);
 scene.add(hearthSpill);
 var fill = new THREE.HemisphereLight(0x1c2028, 0x0e0a06, 0.38);
 scene.add(fill);
@@ -1460,6 +1495,24 @@ function animate() {
     hm.mesh.rotation.x = 0.12 + Math.sin(t * 0.9 + hm.phase * 1.7) * 0.07;
   }
   pend.rotation.z = Math.sin(t * 3.4) * 0.4;
+  // dust settles down the beam, with a slow sideways breathe
+  var mp = moteGeo.attributes.position.array;
+  for (var di = 0; di < moteCount; di++) {
+    var md = moteSeed[di];
+    mp[di * 3 + 1] -= md.sp * 0.016;
+    if (mp[di * 3 + 1] < -beamLen / 2) mp[di * 3 + 1] = beamLen / 2;
+    var wob = md.r + Math.sin(t * 0.5 + md.ph) * 0.02;
+    mp[di * 3]     = Math.cos(md.a + t * 0.05) * wob;
+    mp[di * 3 + 2] = Math.sin(md.a + t * 0.05) * wob;
+  }
+  moteGeo.attributes.position.needsUpdate = true;
+  // smoke climbs and thins, re-forming low
+  for (var si = 0; si < smokes.length; si++) {
+    var sk = smokes[si];
+    var cyc = (t * 0.05 + sk.ph) % 1;
+    sk.sp.position.set(sk.x + Math.sin(t * 0.3 + sk.ph) * 0.15, sk.y + cyc * 0.9, sk.z);
+    sk.sp.material.opacity = sk.base * (1 - cyc * 0.8);
+  }
   camera.position.x = CAM.x + Math.sin(t * 0.1) * 0.08;
   camera.position.y = CAM.y + Math.sin(t * 0.16) * 0.035;
   camera.lookAt(CAM.tx, CAM.ty, CAM.tz);
