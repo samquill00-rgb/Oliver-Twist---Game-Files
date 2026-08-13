@@ -2649,6 +2649,168 @@ var cornerMat = new THREE.MeshBasicMaterial({ map: contactTex, transparent: true
   scene.add(col);
 });
 
+// ---------- THE MYST LAYER: examine-on-click ----------
+// Invisible raycast proxies for diffuse targets
+function proxy(x, y, z, r) {
+  var m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  m.position.set(x, y, z);
+  m.userData.noShadow = true;
+  scene.add(m);
+  return m;
+}
+var holeProxy = proxy(holeWorld.x, holeWorld.y, holeWorld.z, 0.5);
+var bedProxy = proxy(-0.35, 0.15, -2.25, 0.45);
+
+// The strongbox gets a hinged lid and coins inside, for opening on approach
+var lidHinge = new THREE.Group();
+lidHinge.position.set(-3.61, 0.285, -2.04);
+lidHinge.rotation.y = 0.4;
+scene.add(lidHinge);
+var boxLid = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.04, 0.32), boxMat);
+boxLid.position.set(0, 0.02, 0.15);
+lidHinge.add(boxLid);
+var lidOpenTarget = 0;
+for (var bc2 = 0; bc2 < 3; bc2++) {
+  var bcoin = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.0035, 12), giltMat);
+  bcoin.position.set(-3.6 + bc2 * 0.05, 0.245, -1.93 + (bc2 % 2) * 0.05);
+  bcoin.rotation.y = bc2;
+  scene.add(bcoin);
+}
+
+// The cuckoo bird, hidden behind its door until the clock is visited
+var birdG = new THREE.Group();
+birdG.position.set(0, 0.065, 0.02);
+var birdBody = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6),
+  new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.8 }));
+birdG.add(birdBody);
+var birdBeak = new THREE.Mesh(new THREE.ConeGeometry(0.004, 0.01, 5),
+  new THREE.MeshStandardMaterial({ color: 0xc8a020, roughness: 0.5 }));
+birdBeak.rotation.x = Math.PI / 2;
+birdBeak.position.set(0, 0, 0.013);
+birdG.add(birdBeak);
+birdG.visible = false;
+cuckoo.add(birdG);
+var cuckooAnimStart = -1;
+var fireBoost = 0;
+
+// procedural two-note cuckoo, in the DSS SFX spirit
+var audioCtx = null;
+function playCuckoo() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [[784, 0, 0.16], [620, 0.2, 0.24]].forEach(function(nt) {
+      var osc = audioCtx.createOscillator();
+      var g2 = audioCtx.createGain();
+      var lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1600;
+      osc.type = 'triangle';
+      osc.frequency.value = nt[0];
+      var t0 = audioCtx.currentTime + nt[1];
+      g2.gain.setValueAtTime(0, t0);
+      g2.gain.linearRampToValueAtTime(0.12, t0 + 0.02);
+      g2.gain.exponentialRampToValueAtTime(0.001, t0 + nt[2]);
+      osc.connect(lp); lp.connect(g2); g2.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + nt[2] + 0.05);
+    });
+  } catch (e) {}
+}
+
+// Hotspots: what can be examined, where the camera goes, what happens there.
+// Labels are placeholder copy, plainly descriptive, for Dr Quill to rewrite.
+var HOTSPOTS = [
+  { root: cuckoo, name: 'The cuckoo clock', pos: [-2.75, 1.5, 0.85], tgt: [-3.62, 1.42, 0.68],
+    visit: function() { cuckooAnimStart = t; setTimeout(playCuckoo, 500); } },
+  { root: owl, name: 'The owl', pos: [-0.35, 1.8, 1.75], tgt: [-1.4, 1.86, 1.5],
+    visit: function() { owlRuffleStart = t; owlNextRuffle = t + 12; owlHeadTarget = 0.85; } },
+  { root: pierL, name: 'The hearth', pos: [-2.5, 1.0, -0.25], tgt: [-3.9, 0.55, -0.35],
+    visit: function() { fireBoost = 1; } },
+  { root: chester, name: 'The chesterfield', pos: [-2.45, 1.1, 1.0], tgt: [-3.55, 0.5, 1.45] },
+  { root: fagBox, name: 'The strongbox', pos: [-2.75, 0.9, -1.35], tgt: [-3.55, 0.18, -1.9],
+    visit: function() { lidOpenTarget = -1.2; }, leave: function() { lidOpenTarget = 0; } },
+  { root: tableG, name: 'The takings on the table', pos: [-0.25, 1.45, 0.95], tgt: [-0.8, 0.76, 0.3] },
+  { root: hankGroup, name: 'The silk line', pos: [0.85, 1.7, 1.35], tgt: [-0.45, 1.8, -0.05] },
+  { root: holeProxy, name: 'The hole in the roof', pos: [0.1, 1.15, 0.35], tgt: [-0.5, 2.5, -1.75] },
+  { root: bedProxy, name: 'A bedroll', pos: [-0.25, 1.05, -0.85], tgt: [-0.35, 0.12, -2.3] },
+  { root: chairFire, name: 'The black cat', pos: [-0.95, 1.1, 1.4], tgt: [-1.95, 0.52, 0.55] }
+];
+var hotspotRoots = HOTSPOTS.map(function(h) { return h.root; });
+function hotspotFor(obj) {
+  while (obj) {
+    var idx = hotspotRoots.indexOf(obj);
+    if (idx >= 0) return HOTSPOTS[idx];
+    obj = obj.parent;
+  }
+  return null;
+}
+// hover halo
+var halo = makeGlowSprite([[0, 'rgba(230,210,160,0.35)'], [0.55, 'rgba(210,180,120,0.12)'], [1, 'rgba(180,150,90,0)']], 0.4);
+halo.visible = false;
+scene.add(halo);
+// caption card
+var card = document.createElement('div');
+card.style.cssText = 'position:fixed;left:50%;bottom:52px;transform:translateX(-50%);' +
+  'font:15px Georgia,serif;letter-spacing:1px;color:rgba(220,198,150,0.92);' +
+  'background:rgba(10,7,4,0.72);border:1px solid rgba(200,168,106,0.35);' +
+  'padding:10px 22px;border-radius:2px;pointer-events:none;z-index:8;opacity:0;' +
+  'transition:opacity 0.6s ease;text-align:center;';
+card.innerHTML = '';
+document.body.appendChild(card);
+// camera state machine
+var camMode = 'idle';
+var camFromP = new THREE.Vector3(), camFromT = new THREE.Vector3();
+var camToP = new THREE.Vector3(), camToT = new THREE.Vector3();
+var camK = 0, camNext = 'idle', activeHotspot = null;
+var curTarget = new THREE.Vector3(CAM.tx, CAM.ty, CAM.tz);
+function beginTween(toP, toT, next) {
+  camFromP.copy(camera.position);
+  camFromT.copy(curTarget);
+  camToP.set(toP[0], toP[1], toP[2]);
+  camToT.set(toT[0], toT[1], toT[2]);
+  camK = 0; camNext = next; camMode = 'tween';
+}
+var ray2 = new THREE.Raycaster();
+var mouseN = new THREE.Vector2();
+var hoverSpot = null;
+renderer.domElement.addEventListener('pointermove', function(ev) {
+  if (camMode !== 'idle') { hoverSpot = null; halo.visible = false; return; }
+  mouseN.set((ev.clientX / window.innerWidth) * 2 - 1, -(ev.clientY / window.innerHeight) * 2 + 1);
+  ray2.setFromCamera(mouseN, camera);
+  var hits = ray2.intersectObjects(hotspotRoots, true);
+  var spot = hits.length ? hotspotFor(hits[0].object) : null;
+  hoverSpot = spot;
+  if (spot) {
+    var wp = new THREE.Vector3();
+    spot.root.getWorldPosition(wp);
+    if (spot.root === pierL) wp.set(-3.75, 0.6, -0.35);
+    halo.position.copy(wp);
+    halo.visible = true;
+    renderer.domElement.style.cursor = 'pointer';
+  } else {
+    halo.visible = false;
+    renderer.domElement.style.cursor = 'default';
+  }
+});
+renderer.domElement.addEventListener('pointerdown', function() {
+  if (camMode === 'tween') return;
+  if (camMode === 'inspect') {
+    if (activeHotspot && activeHotspot.leave) activeHotspot.leave();
+    activeHotspot = null;
+    card.style.opacity = '0';
+    beginTween([CAM.x, CAM.y, CAM.z], [CAM.tx, CAM.ty, CAM.tz], 'idle');
+    return;
+  }
+  if (hoverSpot) {
+    activeHotspot = hoverSpot;
+    halo.visible = false;
+    card.innerHTML = hoverSpot.name +
+      '<div style="font-size:11px;opacity:0.6;margin-top:5px;">Click anywhere to step back.</div>';
+    card.style.opacity = '1';
+    beginTween(hoverSpot.pos, hoverSpot.tgt, 'inspect');
+    if (hoverSpot.visit) hoverSpot.visit();
+  }
+});
+
 // ---------- SHADOW FLAGS + MATERIAL FINISH PASS ----------
 // Procedural environment for image-based lighting: a dim warm room with a
 // fire-glow to one side and cold moonlight to the other. Gives every
@@ -2719,7 +2881,7 @@ var t = 0, frameN = 0;
 function animate() {
   requestAnimationFrame(animate);
   t += 0.016;
-  var fl = 1.5 + Math.sin(t * 8.3) * 0.16 + Math.sin(t * 23.7) * 0.09 + (Math.random() - 0.5) * 0.14;
+  var fl = 1.5 + fireBoost * 1.1 + Math.sin(t * 8.3) * 0.16 + Math.sin(t * 23.7) * 0.09 + (Math.random() - 0.5) * 0.14;
   fireLight.intensity = fl;
   fireGlow.material.opacity = 0.5 + fl * 0.18;
   mouthGlow.material.opacity = 0.5 + fl * 0.18;
@@ -2826,9 +2988,41 @@ function animate() {
     sk.sp.position.set(sk.x + Math.sin(t * 0.3 + sk.ph) * 0.15, sk.y + cyc * 0.9, sk.z);
     sk.sp.material.opacity = sk.base * (1 - cyc * 0.8);
   }
-  camera.position.x = CAM.x + Math.sin(t * 0.1) * 0.08;
-  camera.position.y = CAM.y + Math.sin(t * 0.16) * 0.035;
-  camera.lookAt(CAM.tx, CAM.ty, CAM.tz);
+  if (camMode === 'idle') {
+    camera.position.set(CAM.x + Math.sin(t * 0.1) * 0.08, CAM.y + Math.sin(t * 0.16) * 0.035, CAM.z);
+    curTarget.set(CAM.tx, CAM.ty, CAM.tz);
+  } else if (camMode === 'tween') {
+    camK = Math.min(1, camK + 0.016 / 1.4);
+    var e = camK * camK * (3 - 2 * camK);
+    camera.position.lerpVectors(camFromP, camToP, e);
+    curTarget.lerpVectors(camFromT, camToT, e);
+    if (camK >= 1) camMode = camNext;
+  } else {
+    camera.position.x = camToP.x + Math.sin(t * 0.3) * 0.012;
+    camera.position.y = camToP.y + Math.sin(t * 0.45) * 0.008;
+  }
+  camera.lookAt(curTarget);
+  bokehPass.uniforms['focus'].value = camera.position.distanceTo(curTarget);
+  // visit reactions
+  fireBoost *= 0.985;
+  if (lidHinge.rotation.x !== lidOpenTarget) {
+    lidHinge.rotation.x += (lidOpenTarget - lidHinge.rotation.x) * 0.06;
+  }
+  if (cuckooAnimStart > 0) {
+    var ck2 = (t - cuckooAnimStart) / 2.4;
+    if (ck2 >= 1) { cuckooAnimStart = -1; birdG.visible = false; door.visible = true; }
+    else {
+      var pop = Math.sin(Math.PI * Math.min(1, ck2 * 3)) * (ck2 < 0.85 ? 1 : (1 - ck2) / 0.15);
+      door.visible = pop < 0.3;
+      birdG.visible = pop >= 0.3;
+      birdG.position.z = 0.02 + Math.max(0, pop) * 0.045;
+      birdG.rotation.x = Math.sin(t * 22) * 0.15 * pop;
+    }
+  }
+  if (halo.visible) {
+    var hp2 = 0.35 + Math.sin(t * 4) * 0.12;
+    halo.scale.set(hp2, hp2, 1);
+  }
   if ((frameN = (frameN || 0) + 1) % 3 === 0) {
     grain.style.transform = 'translate(' + (Math.random() * 96 | 0) + 'px,' + (Math.random() * 96 | 0) + 'px)';
   }
