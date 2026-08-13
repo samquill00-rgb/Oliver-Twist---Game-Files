@@ -223360,6 +223360,59 @@ tw-link:hover, .enchantment-link:hover {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <tw-passagedata pid="1" name="StoryInit" tags="startup" position="0,0" size="100,100">&lt;!-- ═══════════════════════════════════════════════════════════════════
      OLIVER TWIST — SKELETON
      Built 2026-08-12. Every passage below is a STUB: structural notes
@@ -223489,7 +223542,7 @@ tw-link:hover, .enchantment-link:hover {
 [[Nancy&#x27;s room-&gt;Nancy&#x27;s Room]]
 [[Stay in-&gt;The Attic Window]]
 (if: $standing &gt;= 25)[ [[Sikes&#x27;s lodging-&gt;Sikes&#x27;s Lodging]] ]
-(if: $standing &gt;= 40 and $learnedTheTrick)[ [[Follow Fagin-&gt;Following Fagin]] ]]</tw-passagedata>
+(if: $standing &gt;= 40)[ [[Follow Fagin-&gt;Following Fagin]] ]]</tw-passagedata>
 <tw-passagedata pid="23" name="Nightfall" tags="hub" position="600,860" size="100,100">(set: $night to it + 1)&lt;span class=&quot;stub&quot;&gt;&lt;span class=&quot;beat&quot;&gt;&lt;b&gt;THE RETURN.&lt;/b&gt; Increments the night and sends the player back to the den. Every excursion ends here.&lt;/span&gt;&lt;span class=&quot;note&quot;&gt;Structural: exact function of Dean Street&#x27;s return, but the counter means something different — it is Fagin&#x27;s patience, not the dawn. Consider a one-line variant per night so the loop does not feel like a loop.&lt;/span&gt;&lt;/span&gt;
 
 [[Continue-&gt;Fagin&#x27;s Den]]</tw-passagedata>
@@ -223513,9 +223566,9 @@ tw-link:hover, .enchantment-link:hover {
 
 (set: $innocence to it + 10)
 [[Continue-&gt;The Portrait]]</tw-passagedata>
-<tw-passagedata pid="30" name="The Portrait" tags="interlude" position="1180,420" size="100,100">(set: $knowsLocket to true)&lt;span class=&quot;stub&quot;&gt;&lt;span class=&quot;beat&quot;&gt;&lt;b&gt;INTERLUDE — 2 of 3. THE PORTRAIT.&lt;/b&gt; The picture of the young woman on the wall. Brownlow looks from it to Oliver&#x27;s face and stops talking.&lt;/span&gt;&lt;span class=&quot;note&quot;&gt;Structural: the plot&#x27;s actual engine, finally visible. Sets `$knowsLocket`, without which the Locket ending is unreachable. Note the interaction with `$rememberedMother` — a player who swallowed at Sowerberry&#x27;s should get a thinner version of this scene.&lt;/span&gt;&lt;/span&gt;
+<tw-passagedata pid="30" name="The Portrait" tags="interlude" position="1180,420" size="100,100">&lt;span class=&quot;stub&quot;&gt;&lt;span class=&quot;beat&quot;&gt;&lt;b&gt;INTERLUDE — 2 of 3. THE PORTRAIT.&lt;/b&gt; The picture of the young woman on the wall. Brownlow looks from it to Oliver&#x27;s face and stops talking.&lt;/span&gt;&lt;span class=&quot;note&quot;&gt;Structural: the plot&#x27;s actual engine, finally visible. Sets `$knowsLocket`, without which the Locket ending is unreachable. Note the interaction with `$rememberedMother` — a player who swallowed at Sowerberry&#x27;s should get a thinner version of this scene.&lt;/span&gt;&lt;/span&gt;
 
-(if: $rememberedMother)[&lt;span class=&quot;stub&quot;&gt;`$rememberedMother` is true — he has a face to compare it to. Full recognition available in the epilogue.&lt;/span&gt;]
+(if: $rememberedMother)[(set: $knowsLocket to true)&lt;span class=&quot;stub&quot;&gt;`$rememberedMother` is true — he has a face to compare it to. Full recognition available in the epilogue.&lt;/span&gt;]
 (else:)[&lt;span class=&quot;stub&quot;&gt;`$rememberedMother` is false — the portrait means less. Epilogue recognition must be earned elsewhere (Nancy, or Monks).&lt;/span&gt;]
 
 [[Continue-&gt;The Books]]</tw-passagedata>

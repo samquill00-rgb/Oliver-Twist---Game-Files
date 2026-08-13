@@ -229,7 +229,7 @@ tw-link:hover, .enchantment-link:hover {
 [[Nancy's room->Nancy's Room]]
 [[Stay in->The Attic Window]]
 (if: $standing >= 25)[ [[Sikes's lodging->Sikes's Lodging]] ]
-(if: $standing >= 40 and $learnedTheTrick)[ [[Follow Fagin->Following Fagin]] ]]
+(if: $standing >= 40)[ [[Follow Fagin->Following Fagin]] ]]
 
 :: Nightfall [hub] {"position":"600,860","size":"100,100"}
 (set: $night to it + 1)<span class="stub"><span class="beat"><b>THE RETURN.</b> Increments the night and sends the player back to the den. Every excursion ends here.</span><span class="note">Structural: exact function of Dean Street's return, but the counter means something different — it is Fagin's patience, not the dawn. Consider a one-line variant per night so the loop does not feel like a loop.</span></span>
@@ -269,9 +269,9 @@ tw-link:hover, .enchantment-link:hover {
 [[Continue->The Portrait]]
 
 :: The Portrait [interlude] {"position":"1180,420","size":"100,100"}
-(set: $knowsLocket to true)<span class="stub"><span class="beat"><b>INTERLUDE — 2 of 3. THE PORTRAIT.</b> The picture of the young woman on the wall. Brownlow looks from it to Oliver's face and stops talking.</span><span class="note">Structural: the plot's actual engine, finally visible. Sets `$knowsLocket`, without which the Locket ending is unreachable. Note the interaction with `$rememberedMother` — a player who swallowed at Sowerberry's should get a thinner version of this scene.</span></span>
+<span class="stub"><span class="beat"><b>INTERLUDE — 2 of 3. THE PORTRAIT.</b> The picture of the young woman on the wall. Brownlow looks from it to Oliver's face and stops talking.</span><span class="note">Structural: the plot's actual engine, finally visible. Sets `$knowsLocket`, without which the Locket ending is unreachable. Note the interaction with `$rememberedMother` — a player who swallowed at Sowerberry's should get a thinner version of this scene.</span></span>
 
-(if: $rememberedMother)[<span class="stub">`$rememberedMother` is true — he has a face to compare it to. Full recognition available in the epilogue.</span>]
+(if: $rememberedMother)[(set: $knowsLocket to true)<span class="stub">`$rememberedMother` is true — he has a face to compare it to. Full recognition available in the epilogue.</span>]
 (else:)[<span class="stub">`$rememberedMother` is false — the portrait means less. Epilogue recognition must be earned elsewhere (Nancy, or Monks).</span>]
 
 [[Continue->The Books]]
