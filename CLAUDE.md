@@ -3,6 +3,12 @@
 Sister project to Dream Street Shuffle, built on the same pipeline. Title is a
 placeholder.
 
+## Session start
+
+If `HANDOFF.md` exists at the project root, read it before responding to the
+first message. It carries forward the previous session's state and next items.
+`HANDOFF*.md` is gitignored, so it is safe to write.
+
 ## NEVER read `Oliver Twist.html`
 
 It is a **compiled artifact**, generated from the .twee by `sync_html.py`.
